@@ -9,8 +9,9 @@ import type { Ghat, TimeSlot } from '@/lib/types';
 import { useCollection } from '@/firebase';
 import { useFirestore } from '@/firebase';
 import { Skeleton } from './ui/skeleton';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { mockGhats } from '@/lib/data';
 
 type SlotBookingAreaProps = {
     ghatOptions: { value: string, label: string }[];
@@ -75,27 +76,18 @@ export default function SlotBookingArea({ ghatOptions }: SlotBookingAreaProps) {
     }
     if (!ghats || ghats.length === 0) {
         return (
-            <section id="slots" className="py-20">
-                <div className="container text-center">
-                    <div className="text-center mb-12">
-                        <h2 className="font-headline text-3xl md:text-4xl font-bold text-foreground">
-                            Live Slot Availability
-                        </h2>
-                        <p className="mt-2 text-lg text-muted-foreground max-w-xl mx-auto">
-                            Choose your preferred Ghat and time for a holy dip. Status is updated in real-time.
-                        </p>
-                    </div>
-                    <div className="bg-secondary/50 border border-dashed border-border p-8 rounded-lg">
-                        <h3 className="font-semibold text-xl text-foreground">No Ghats Available</h3>
-                        <p className="text-muted-foreground mt-2">
-                            It seems there are no Ghats configured in the database.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-4">
-                            (Developer note: Please seed the 'ghats' collection in your Firestore database.)
-                        </p>
-                    </div>
+            <>
+                <LiveSlotTracker ghats={mockGhats} onSlotSelect={handleSlotSelect} />
+                <div className="container -mt-10 mb-10">
+                    <Alert className="border-primary/50 bg-primary/10">
+                        <Info className="h-4 w-4 text-primary" />
+                        <AlertTitle className="text-primary">Developer Preview</AlertTitle>
+                        <AlertDescription className="text-primary/80">
+                            Your Firestore 'ghats' collection is empty. Showing mock data as a fallback. Please seed your database to see live slot availability.
+                        </AlertDescription>
+                    </Alert>
                 </div>
-            </section>
+            </>
         );
     }
     return <LiveSlotTracker ghats={ghats} onSlotSelect={handleSlotSelect} />;

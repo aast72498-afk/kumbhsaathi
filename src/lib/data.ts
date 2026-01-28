@@ -4,7 +4,7 @@ import { PlaceHolderImages } from './placeholder-images';
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id);
 
 // Note: shortName for Tapovan changed from TP to TV
-const mockGhats: Ghat[] = [
+export const mockGhats: Ghat[] = [
   {
     id: 'ram-kund-ghat',
     name: 'Ram Kund',
