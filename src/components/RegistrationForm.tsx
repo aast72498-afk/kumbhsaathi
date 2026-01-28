@@ -26,8 +26,8 @@ const registrationSchema = z.object({
   mobileNumber: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit mobile number."),
   numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(10, "Maximum 10 people per registration."),
   date: z.date({ required_error: "Please select a date for your visit." }),
-  ghat: z.string({ required_error: "Please select a Ghat." }),
-  timeSlot: z.string({ required_error: "Please select a time slot." }),
+  ghat: z.string({ required_error: "Please select a Ghat." }).min(1, "Please select a Ghat."),
+  timeSlot: z.string({ required_error: "Please select a time slot." }).min(1, "Please select a time slot."),
 });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
@@ -49,8 +49,9 @@ export function RegistrationForm({ ghats, selection }: RegistrationFormProps) {
       fullName: "",
       mobileNumber: "",
       numberOfPeople: 1,
-      ghat: selection?.ghat.shortName || undefined,
-      timeSlot: selection?.slot.time || undefined,
+      date: undefined,
+      ghat: selection?.ghat.shortName || "",
+      timeSlot: selection?.slot.time || "",
     }
   });
 
@@ -65,8 +66,8 @@ export function RegistrationForm({ ghats, selection }: RegistrationFormProps) {
             mobileNumber: form.getValues('mobileNumber'),
             numberOfPeople: form.getValues('numberOfPeople'),
             date: form.getValues('date'),
-            ghat: undefined,
-            timeSlot: undefined,
+            ghat: "",
+            timeSlot: "",
         });
     }
   }, [selection, form]);
@@ -89,7 +90,14 @@ export function RegistrationForm({ ghats, selection }: RegistrationFormProps) {
   }
 
   const resetForm = () => {
-    form.reset();
+    form.reset({
+      fullName: "",
+      mobileNumber: "",
+      numberOfPeople: 1,
+      date: undefined,
+      ghat: "",
+      timeSlot: "",
+    });
     setSuccessData(null);
     setError(null);
   }
