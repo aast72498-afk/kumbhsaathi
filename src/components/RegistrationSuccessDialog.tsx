@@ -10,7 +10,6 @@ type SuccessDetails = {
     ghatName: string;
     timeSlot: string;
     date: Date;
-    telegramUrl: string;
 }
 
 type DialogProps = {
@@ -29,6 +28,9 @@ export function RegistrationSuccessDialog({ open, onOpenChange, details }: Dialo
             description: "Your registration ID has been copied.",
         });
     }
+
+    const telegramBotUsername = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "KumbhSaathi_bot").replace('@', '');
+    const telegramUrl = `https://t.me/${telegramBotUsername}?start=${details.id}`;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +62,7 @@ export function RegistrationSuccessDialog({ open, onOpenChange, details }: Dialo
                 </div>
                 <DialogFooter className="sm:justify-center">
                     <Button asChild size="lg" className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold gap-2">
-                        <a href={details.telegramUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
                            <Send className="h-4 w-4" />
                            Get Ticket on Telegram
                         </a>

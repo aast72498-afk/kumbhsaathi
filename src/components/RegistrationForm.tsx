@@ -41,7 +41,7 @@ type RegistrationFormProps = {
 export function RegistrationForm({ ghats, selection }: RegistrationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successData, setSuccessData] = useState<{ id: string; telegramUrl: string; ghatName: string; timeSlot: string; date: Date } | null>(null);
+  const [successData, setSuccessData] = useState<{ id: string; ghatName: string; timeSlot: string; date: Date } | null>(null);
 
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
