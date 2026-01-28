@@ -13,7 +13,7 @@ export default function RegistrationSection({ selection, ghatOptions }: Registra
   const bgImage = PlaceHolderImages.find(img => img.id === 'kumbh-bg');
 
   return (
-    <section id="registration-form" className="py-20 bg-cover bg-center relative" >
+    <section id="registration-form" className="py-20 bg-cover bg-center relative scroll-mt-20" >
         <div className="absolute inset-0 bg-black/50 z-0">
           {bgImage && (
              <Image
@@ -32,10 +32,10 @@ export default function RegistrationSection({ selection, ghatOptions }: Registra
                         Book Your Divine Slot
                     </h2>
                     <p className="mt-2 text-lg text-white/80">
-                        Fill in your details to secure your spot for a hassle-free experience.
+                        {selection ? "Confirm your details below." : "Select a slot above or fill in your details to secure your spot."}
                     </p>
                 </div>
-                <RegistrationForm ghats={ghatOptions} selection={selection} />
+                <RegistrationForm ghats={ghatOptions} selection={selection ? { ghat: { name: selection.ghat.name, shortName: selection.ghat.shortName}, slot: { time: selection.slot.time } } : null} />
             </div>
         </div>
     </section>

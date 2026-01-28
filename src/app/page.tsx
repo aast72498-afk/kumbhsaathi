@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import Footer from '@/components/Footer';
 import SlotBookingArea from '@/components/SlotBookingArea';
-import { getGhatsData, getGhatsForDropdown } from '@/lib/data';
+import { getGhatsForDropdown } from '@/lib/data';
 
 // For now, this is a mock. In a real app, this would be fetched from Firestore.
 const getRegisteredToday = async () => {
@@ -11,7 +11,6 @@ const getRegisteredToday = async () => {
 
 export default async function Home() {
   const registeredToday = await getRegisteredToday();
-  const ghats = await getGhatsData();
   const ghatOptions = await getGhatsForDropdown();
 
   return (
@@ -19,7 +18,7 @@ export default async function Home() {
       <Header />
       <main className="flex-1 pb-20">
         <Hero registeredToday={registeredToday} />
-        <SlotBookingArea ghats={ghats} ghatOptions={ghatOptions} />
+        <SlotBookingArea ghatOptions={ghatOptions} />
       </main>
       <Footer />
     </div>

@@ -39,15 +39,24 @@ export function GhatCard({ ghat, onSlotSelect }: { ghat: Ghat, onSlotSelect: (gh
             return (
               <li key={slot.id} className="flex justify-between items-center bg-secondary/50 p-3 rounded-lg">
                 <span className="font-medium text-foreground">{slot.time}</span>
-                <Button 
-                    size="sm"
-                    onClick={() => onSlotSelect(ghat, slot)} 
-                    disabled={status.disabled}
-                    variant={status.disabled ? 'destructive' : 'default'}
-                    className="font-bold"
-                >
-                    {status.label === 'Full' ? 'Full' : 'Book Now'}
-                </Button>
+                <div className='flex items-center gap-2'>
+                    <span 
+                        className={cn('text-sm font-bold', {
+                            'text-green-600': status.label === 'Available',
+                            'text-orange-500': status.label === 'Filling Fast',
+                            'text-red-600': status.label === 'Full',
+                        })}
+                    >{status.label}</span>
+                    <Button 
+                        size="sm"
+                        onClick={() => onSlotSelect(ghat, slot)} 
+                        disabled={status.disabled}
+                        variant={status.disabled ? 'destructive' : 'default'}
+                        className="font-bold w-[110px]"
+                    >
+                        {status.label === 'Full' ? 'Full' : 'Book Now'}
+                    </Button>
+                </div>
               </li>
             )
           })}

@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Registration": {
+      "title": "Pilgrim Registration",
+      "description": "Represents a single registration for a pilgrim or a group.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique registration ID (KM-27-...)." },
+        "fullName": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "numberOfPeople": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "ghatId": { "type": "string" },
+        "ghatName": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "fullName", "mobileNumber", "numberOfPeople", "date", "ghatId", "ghatName", "timeSlot", "createdAt"]
+    },
+    "Ghat": {
+      "title": "Ghat Information",
+      "description": "Represents a Ghat with its details and time slots.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID for the ghat (e.g., ram-kund-ghat)." },
+        "name": { "type": "string" },
+        "shortName": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "imageHint": { "type": "string" },
+        "timeSlots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/backend/entities/TimeSlot"
+          }
+        }
+      },
+      "required": ["id", "name", "shortName", "timeSlots", "imageUrl", "imageHint"]
+    },
+    "TimeSlot": {
+      "title": "Time Slot",
+      "description": "Represents a time slot within a Ghat.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "time": { "type": "string" },
+        "maxCapacity": { "type": "number" },
+        "currentRegistrations": { "type": "number" }
+      },
+      "required": ["id", "time", "maxCapacity", "currentRegistrations"]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/registrations/{registrationId}": {
+      "schema": { "$ref": "#/backend/entities/Registration" },
+      "description": "Stores individual pilgrim registrations."
+    },
+    "/ghats/{ghatId}": {
+      "schema": { "$ref": "#/backend/entities/Ghat" },
+      "description": "Stores information about each Ghat and its slots."
+    }
+  }
+}

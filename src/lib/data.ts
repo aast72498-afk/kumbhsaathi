@@ -3,6 +3,7 @@ import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id);
 
+// Note: shortName for Tapovan changed from TP to TV
 const mockGhats: Ghat[] = [
   {
     id: 'ram-kund-ghat',
@@ -19,7 +20,7 @@ const mockGhats: Ghat[] = [
   {
     id: 'tapovan-ghat',
     name: 'Tapovan Ghat',
-    shortName: 'TP',
+    shortName: 'TV', // Changed from TP
     imageUrl: findImage('tapovan')?.imageUrl || '',
     imageHint: findImage('tapovan')?.imageHint || '',
     timeSlots: [
@@ -41,25 +42,11 @@ const mockGhats: Ghat[] = [
   },
 ];
 
-export const getGhatsData = async (): Promise<Ghat[]> => {
-  // In a real app, you'd fetch this from Firestore and calculate currentRegistrations
-  return Promise.resolve(mockGhats.map(ghat => ({
-    ...ghat,
-    timeSlots: ghat.timeSlots.map(slot => ({
-      ...slot,
-      // Add randomness to simulate live data, but make it consistent per request
-      currentRegistrations: Math.min(slot.maxCapacity, Math.floor(Math.random() * (slot.maxCapacity + 500)))
-    }))
-  })));
-};
-
+// This function is now only for getting static options for the dropdown.
+// The live data is fetched from Firestore on the client.
 export const getGhatsForDropdown = async () => {
     return Promise.resolve(mockGhats.map(ghat => ({
         value: ghat.shortName,
         label: ghat.name,
     })));
 };
-
-export const getGhatByShortName = (shortName: string): Ghat | undefined => {
-    return mockGhats.find(g => g.shortName === shortName);
-}

@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ghats/{ghatId} {
+      allow read: if true;
+      allow write: if false; // Should only be updatable via server-side logic
+    }
+
+    match /registrations/{registrationId} {
+      allow read: if false; // Protect user data
+      allow create: if true; // Allow anyone to register
+    }
+  }
+}

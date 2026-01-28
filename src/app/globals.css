@@ -8,20 +8,20 @@ body {
 
 @layer base {
   :root {
-    --background: 40 100% 94%;
+    --background: 40 100% 94%; /* Off-White #FFF5E1 */
     --foreground: 24 9.8% 10%;
     --card: 40 100% 94%;
     --card-foreground: 24 9.8% 10%;
     --popover: 40 100% 94%;
     --popover-foreground: 24 9.8% 10%;
-    --primary: 30 100% 60%;
+    --primary: 30 100% 60%; /* Saffron #FF9933 */
     --primary-foreground: 24 9.8% 10%;
     --secondary: 40 100% 97%;
     --secondary-foreground: 24 9.8% 10%;
     --muted: 40 10% 90%;
     --muted-foreground: 24 5.9% 30%;
-    --accent: 208 100% 30%;
-    --accent-foreground: 40 100% 94%;
+    --accent: 51 100% 50%; /* Deep Gold #FFD700 */
+    --accent-foreground: 24 9.8% 10%; /* Text on accent should be dark */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 30 10% 80%;
@@ -55,7 +55,7 @@ body {
     --secondary-foreground: 40 100% 94%;
     --muted: 24 10% 20%;
     --muted-foreground: 40 5% 70%;
-    --accent: 208 80% 60%;
+    --accent: 51 100% 50%;
     --accent-foreground: 24 9.8% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
