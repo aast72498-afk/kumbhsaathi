@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "ram-kund",
+      "description": "A bustling ghat on a river with temples in the background.",
+      "imageUrl": "https://images.unsplash.com/photo-1608412525521-08980a1f210e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnaGF0JTIwdGVtcGxlfGVufDB8fHx8MTc2OTYwNDYxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ghat temple"
+    },
+    {
+      "id": "tapovan",
+      "description": "A serene river bank with trees and calm water.",
+      "imageUrl": "https://images.unsplash.com/photo-1594675610313-f427344ac988?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyaXZlciUyMGZvcmVzdHxlbnwwfHx8fDE3Njk2MDQ2MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "river forest"
+    },
+    {
+      "id": "laxman-kund",
+      "description": "Steps leading down to a river, with people bathing.",
+      "imageUrl": "https://images.unsplash.com/photo-1752733904517-e8b987add6b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxnaGF0JTIwcml2ZXJ8ZW58MHx8fHwxNzY5NjA0NjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ghat river"
+    },
+    {
+      "id": "kumbh-bg",
+      "description": "A wide-angle shot of a holy river at sunset with many people.",
+      "imageUrl": "https://images.unsplash.com/photo-1726266140487-39c194e3af48?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxob2x5JTIwcml2ZXJ8ZW58MHx8fHwxNzY5NjA0NjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "holy river"
+    }
+  ]
 }
