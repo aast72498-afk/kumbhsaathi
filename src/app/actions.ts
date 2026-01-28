@@ -6,11 +6,43 @@ import {
     collection,
     addDoc,
     serverTimestamp,
+    getDocs,
+    writeBatch,
+    query,
+    limit,
+    where,
     DocumentReference,
     DocumentData
 } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
-import type { RegistrationPayload, Ghat, TimeSlot } from '@/lib/types';
+import { getFirebaseServer } from '@/firebase/server';
+import type { RegistrationPayload, Ghat } from '@/lib/types';
+import { mockGhats } from '@/lib/data';
+
+// --- Database Seeding Action ---
+export async function seedDatabase() {
+    const { firestore } = getFirebaseServer();
+    const ghatsRef = collection(firestore, "ghats");
+    
+    const q = query(ghatsRef, limit(1));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+        console.log("Ghats collection is empty. Seeding database...");
+        try {
+            const batch = writeBatch(firestore);
+            mockGhats.forEach((ghat) => {
+                // Use the predefined ID for the document
+                const docRef = doc(firestore, "ghats", ghat.id);
+                batch.set(docRef, ghat);
+            });
+            await batch.commit();
+            console.log("Database seeded successfully.");
+        } catch (error) {
+            console.error("Error seeding database:", error);
+            // We might want to throw here to indicate a critical startup failure
+        }
+    }
+}
 
 
 const generateRandomChars = (length: number) => {
@@ -22,9 +54,12 @@ const generateRandomChars = (length: number) => {
     return result;
 }
 
+// --- Webhook Configuration ---
 const WEBHOOK_URL = 'https://unarrestive-unpotently-glenda.ngrok-free.dev/webhook/d7bc3369-b741-4d56-98df-9b6a9f9f454e';
 
 async function sendWebhook(payload: object) {
+    console.log("Sending webhook to:", WEBHOOK_URL);
+    console.log("Webhook payload:", JSON.stringify(payload, null, 2));
     try {
         const response = await fetch(WEBHOOK_URL, {
             method: 'POST',
@@ -34,80 +69,86 @@ async function sendWebhook(payload: object) {
             body: JSON.stringify(payload),
         });
         if (!response.ok) {
-            console.error("Webhook failed with status:", response.status, await response.text());
+            console.error("Webhook notification failed with status:", response.status, await response.text());
+        } else {
+            console.log("Webhook sent successfully.");
         }
     } catch (error) {
-        console.error("Failed to send webhook:", error);
-        // Don't block the user flow if webhook fails
+        console.error("Webhook call failed:", error);
     }
 }
 
 
+// --- Pilgrim Registration Action ---
 export async function registerPilgrim(data: RegistrationPayload) {
-    const { firestore } = initializeFirebase();
+    const { firestore } = getFirebaseServer();
     const { fullName, mobileNumber, numberOfPeople, date, ghat: ghatShortName, timeSlot } = data;
     
-    // Server-side validation
     if (!fullName || !mobileNumber || !numberOfPeople || !date || !ghatShortName || !timeSlot) {
          return { success: false, error: "Missing required registration details." };
     }
 
+    const ghatsRef = collection(firestore, "ghats");
+    const q = query(ghatsRef, where("shortName", "==", ghatShortName), limit(1));
+    
     try {
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            return { success: false, error: "Configuration error: Selected Ghat could not be found." };
+        }
+        const ghatDocRef = querySnapshot.docs[0].ref;
+
+        // Transaction to ensure atomic update
         const resultData = await runTransaction(firestore, async (transaction) => {
-            // There is no ghatId in the payload, so we need to get it from the shortName
-            const ghatQuerySnapshot = await transaction.get(collection(firestore, "ghats"));
-            const ghatDoc = ghatQuerySnapshot.docs.find(d => d.data().shortName === ghatShortName);
+            const ghatDoc = await transaction.get(ghatDocRef);
             
-            if (!ghatDoc) {
-                throw new Error("Selected Ghat not found.");
+            if (!ghatDoc.exists()) {
+                throw new Error("Database inconsistency: Ghat document not found within transaction.");
             }
             
-            const ghatRef = ghatDoc.ref;
             const ghatData = ghatDoc.data() as Ghat;
-            const ghatId = ghatDoc.id;
 
-            // Find the selected time slot and check capacity
             const slotIndex = ghatData.timeSlots.findIndex(s => s.time === timeSlot);
             if (slotIndex === -1) {
-                throw new Error("Selected time slot not found for this Ghat.");
+                throw new Error("Selected time slot is no longer available or valid.");
             }
 
             const selectedSlot = ghatData.timeSlots[slotIndex];
-            if ((selectedSlot.currentRegistrations + numberOfPeople) > selectedSlot.maxCapacity) {
-                throw new Error(`The selected slot at ${ghatData.name} is now full or has insufficient capacity. Please try another.`);
+            const numericNumberOfPeople = Number(numberOfPeople);
+            if ((selectedSlot.currentRegistrations + numericNumberOfPeople) > selectedSlot.maxCapacity) {
+                throw new Error(`The selected slot at ${ghatData.name} is now full or has insufficient capacity for ${numericNumberOfPeople} people. Please try another.`);
             }
 
-            // Generate Unique ID
             const uniqueId = `KM-27-${ghatData.shortName}-${generateRandomChars(4)}`;
 
-            // 1. Create a new registration document
             const registrationData = {
                 id: uniqueId,
                 fullName,
                 mobileNumber,
-                numberOfPeople,
-                date: date,
-                ghatId: ghatId,
+                numberOfPeople: numericNumberOfPeople,
+                date: date.toISOString(),
+                ghatId: ghatDoc.id,
                 ghatName: ghatData.name,
                 timeSlot: timeSlot,
                 createdAt: serverTimestamp()
             };
-            transaction.set(doc(collection(firestore, "registrations")), registrationData);
+            const newRegistrationRef = doc(collection(firestore, "registrations"));
+            transaction.set(newRegistrationRef, registrationData);
 
-
-            // 2. Update the ghat's timeslot registrations
             const updatedTimeSlots = [...ghatData.timeSlots];
             updatedTimeSlots[slotIndex] = {
                 ...updatedTimeSlots[slotIndex],
-                currentRegistrations: updatedTimeSlots[slotIndex].currentRegistrations + numberOfPeople
+                currentRegistrations: updatedTimeSlots[slotIndex].currentRegistrations + numericNumberOfPeople
             };
 
-            transaction.update(ghatRef, { timeSlots: updatedTimeSlots });
+            transaction.update(ghatDocRef, { timeSlots: updatedTimeSlots });
 
             return { uniqueId, ghatName: ghatData.name };
         });
         
-        // Transaction successful, now send webhook
+        console.log("Registration transaction successful.");
+        
+        // Send webhook after successful registration
         await sendWebhook({
             name: fullName,
             mobile: mobileNumber,
@@ -116,8 +157,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
             ticketID: resultData.uniqueId
         });
 
-        // Simulate Telegram link for the success dialog
-        const telegramBotUsername = "KumbhSaathiOfficialBot"; // Placeholder
+        const telegramBotUsername = "KumbhSaathiOfficialBot";
         const telegramUrl = `https://t.me/${telegramBotUsername}?start=${resultData.uniqueId}`;
 
         return {
@@ -132,7 +172,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
         };
 
     } catch (e: any) {
-        console.error("Registration Transaction Failed:", e);
+        console.error("Registration Failed:", e);
         return { success: false, error: e.message || "An error occurred during registration. Please try again." };
     }
 }
