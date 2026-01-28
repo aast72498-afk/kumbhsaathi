@@ -1,17 +1,25 @@
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
-import LiveSlotTracker from '@/components/LiveSlotTracker';
-import RegistrationSection from '@/components/RegistrationSection';
 import Footer from '@/components/Footer';
+import SlotBookingArea from '@/components/SlotBookingArea';
+import { getGhatsData, getGhatsForDropdown } from '@/lib/data';
 
-export default function Home() {
+// For now, this is a mock. In a real app, this would be fetched from Firestore.
+const getRegisteredToday = async () => {
+    return 12345;
+}
+
+export default async function Home() {
+  const registeredToday = await getRegisteredToday();
+  const ghats = await getGhatsData();
+  const ghatOptions = await getGhatsForDropdown();
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-1">
-        <Hero />
-        <LiveSlotTracker />
-        <RegistrationSection />
+      <main className="flex-1 pb-20">
+        <Hero registeredToday={registeredToday} />
+        <SlotBookingArea ghats={ghats} ghatOptions={ghatOptions} />
       </main>
       <Footer />
     </div>

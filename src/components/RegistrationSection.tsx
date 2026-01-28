@@ -1,14 +1,19 @@
 import { RegistrationForm } from './RegistrationForm';
-import { getGhatsForDropdown } from '@/lib/data';
 import {PlaceHolderImages} from '@/lib/placeholder-images'
 import Image from 'next/image';
+import type { Ghat, TimeSlot } from '@/lib/types';
 
-export default async function RegistrationSection() {
-  const ghats = await getGhatsForDropdown();
+type RegistrationSectionProps = {
+    selection: { ghat: Ghat, slot: TimeSlot } | null;
+    ghatOptions: { value: string, label: string }[];
+}
+
+
+export default function RegistrationSection({ selection, ghatOptions }: RegistrationSectionProps) {
   const bgImage = PlaceHolderImages.find(img => img.id === 'kumbh-bg');
 
   return (
-    <section id="register" className="py-20 bg-cover bg-center relative" >
+    <section id="registration-form" className="py-20 bg-cover bg-center relative" >
         <div className="absolute inset-0 bg-black/50 z-0">
           {bgImage && (
              <Image
@@ -30,7 +35,7 @@ export default async function RegistrationSection() {
                         Fill in your details to secure your spot for a hassle-free experience.
                     </p>
                 </div>
-                <RegistrationForm ghats={ghats} />
+                <RegistrationForm ghats={ghatOptions} selection={selection} />
             </div>
         </div>
     </section>

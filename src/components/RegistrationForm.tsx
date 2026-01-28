@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { RegistrationSuccessDialog } from './RegistrationSuccessDialog';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
-import type { RegistrationPayload } from '@/lib/types';
+import type { Ghat, TimeSlot } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { AlertCircle } from 'lucide-react';
 
@@ -27,12 +27,18 @@ const registrationSchema = z.object({
   numberOfPeople: z.coerce.number().min(1, "At least one person is required.").max(10, "Maximum 10 people per registration."),
   date: z.date({ required_error: "Please select a date for your visit." }),
   ghat: z.string({ required_error: "Please select a Ghat." }),
+  timeSlot: z.string({ required_error: "Please select a time slot." }),
 });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
 type GhatOption = { value: string; label: string };
 
-export function RegistrationForm({ ghats }: { ghats: GhatOption[] }) {
+type RegistrationFormProps = {
+  ghats: GhatOption[];
+  selection: { ghat: { name: string, shortName: string }, slot: { time: string } } | null;
+}
+
+export function RegistrationForm({ ghats, selection }: RegistrationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ id: string; telegramUrl: string; ghatName: string; timeSlot: string; date: Date } | null>(null);
@@ -43,10 +49,29 @@ export function RegistrationForm({ ghats }: { ghats: GhatOption[] }) {
       fullName: "",
       mobileNumber: "",
       numberOfPeople: 1,
+      ghat: selection?.ghat.shortName || undefined,
+      timeSlot: selection?.slot.time || undefined,
     }
   });
 
-  async function onSubmit(data: RegistrationPayload) {
+  useEffect(() => {
+    if (selection) {
+      form.setValue('ghat', selection.ghat.shortName);
+      form.setValue('timeSlot', selection.slot.time);
+      setError(null); // Clear previous errors when a new selection is made
+    } else {
+        form.reset({
+            fullName: form.getValues('fullName'),
+            mobileNumber: form.getValues('mobileNumber'),
+            numberOfPeople: form.getValues('numberOfPeople'),
+            date: form.getValues('date'),
+            ghat: undefined,
+            timeSlot: undefined,
+        });
+    }
+  }, [selection, form]);
+
+  async function onSubmit(data: RegistrationFormValues) {
     setIsLoading(true);
     setError(null);
     try {
@@ -105,42 +130,57 @@ export function RegistrationForm({ ghats }: { ghats: GhatOption[] }) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="numberOfPeople"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className={labelStyles}>Number of People</FormLabel>
-              <FormControl>
-                <Input type="number" min="1" max="10" {...field} className={inputStyles} />
-              </FormControl>
-              <FormMessage className="text-red-300" />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
             control={form.control}
             name="ghat"
             render={({ field }) => (
-              <FormItem>
+                <FormItem>
                 <FormLabel className={labelStyles}>Select Ghat</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className={cn(inputStyles, "text-white/90")}>
-                      <SelectValue placeholder="Choose a Ghat" />
+                <Select onValueChange={field.onChange} value={field.value} disabled={!!selection}>
+                    <FormControl>
+                    <SelectTrigger className={cn(inputStyles, "text-white/90", !!selection && "font-bold")}>
+                        <SelectValue placeholder="Choose a Ghat" />
                     </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
+                    </FormControl>
+                    <SelectContent>
                     {ghats.map((ghat) => (
-                      <SelectItem key={ghat.value} value={ghat.value}>{ghat.label}</SelectItem>
+                        <SelectItem key={ghat.value} value={ghat.value}>{ghat.label}</SelectItem>
                     ))}
-                  </SelectContent>
+                    </SelectContent>
                 </Select>
                 <FormMessage className="text-red-300" />
-              </FormItem>
+                </FormItem>
             )}
-          />
+            />
+            <FormField
+            control={form.control}
+            name="timeSlot"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel className={labelStyles}>Time Slot</FormLabel>
+                <FormControl>
+                    <Input {...field} className={cn(inputStyles, !!selection && "font-bold")} disabled={!!selection} placeholder={selection ? "" : "Select from cards above"}/>
+                </FormControl>
+                <FormMessage className="text-red-300" />
+                </FormItem>
+            )}
+            />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <FormField
+                control={form.control}
+                name="numberOfPeople"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className={labelStyles}>Number of People</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="1" max="10" {...field} className={inputStyles} />
+                    </FormControl>
+                    <FormMessage className="text-red-300" />
+                    </FormItem>
+                )}
+                />
           <FormField
             control={form.control}
             name="date"

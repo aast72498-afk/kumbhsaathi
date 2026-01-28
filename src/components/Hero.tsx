@@ -2,14 +2,8 @@ import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { Button } from '@/components/ui/button';
 import { Waves } from 'lucide-react';
 
-// For now, this is a mock. In a real app, this would be fetched from Firestore.
-const getRegisteredToday = async () => {
-    return 12345;
-}
 
-export default async function Hero() {
-  const registeredToday = await getRegisteredToday();
-
+export default function Hero({ registeredToday }: { registeredToday: number }) {
   return (
     <section className="relative py-20 md:py-32 bg-secondary/30 overflow-hidden">
         <div className="absolute inset-0 opacity-10 -z-10">

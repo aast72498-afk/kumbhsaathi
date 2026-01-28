@@ -4,16 +4,6 @@ import * as z from 'zod';
 import { getGhatByShortName, getGhatsData } from '@/lib/data';
 import type { RegistrationPayload } from '@/lib/types';
 
-const findAvailableSlot = async (ghatId: string, numberOfPeople: number) => {
-    // In a real app, this would be a complex transaction checking Firestore
-    const allGhats = await getGhatsData();
-    const ghat = allGhats.find(g => g.id === ghatId);
-    if (!ghat) return null;
-
-    const availableSlot = ghat.timeSlots.find(slot => (slot.currentRegistrations + numberOfPeople) <= slot.maxCapacity);
-    return availableSlot;
-}
-
 const generateRandomChars = (length: number) => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -25,18 +15,30 @@ const generateRandomChars = (length: number) => {
 
 export async function registerPilgrim(data: RegistrationPayload) {
     // Schema is defined in the form, but we can re-validate here for safety
-    const { fullName, mobileNumber, numberOfPeople, date, ghat: ghatShortName } = data;
+    const { fullName, mobileNumber, numberOfPeople, date, ghat: ghatShortName, timeSlot } = data;
     
     const ghat = getGhatByShortName(ghatShortName);
     if (!ghat) {
         return { success: false, error: "Selected Ghat not found." };
     }
     
-    // Simulate finding a slot.
-    const timeSlot = await findAvailableSlot(ghat.id, numberOfPeople);
+    // The user has selected a time slot. Find it and check if it's available.
+    const selectedSlot = ghat.timeSlots.find(s => s.time === timeSlot);
 
-    if (!timeSlot) {
-        return { success: false, error: `No available slots for ${numberOfPeople} people at ${ghat.name}. Please try another Ghat or time.` };
+    if (!selectedSlot) {
+        return { success: false, error: "Selected time slot not found." };
+    }
+
+    // In a real app, this check would be a transaction.
+    // We refetch the data to get the most "live" numbers for this simulation.
+    const allGhats = await getGhatsData();
+    const liveGhat = allGhats.find(g => g.id === ghat.id);
+    const liveSlot = liveGhat?.timeSlots.find(s => s.id === selectedSlot.id);
+    const capacityCheck = liveSlot ? liveSlot.currentRegistrations : selectedSlot.currentRegistrations;
+
+
+    if (!liveSlot || (capacityCheck + numberOfPeople) > selectedSlot.maxCapacity) {
+        return { success: false, error: `The selected slot at ${ghat.name} is now full or has insufficient capacity. Please try another.` };
     }
 
     // Generate Unique ID
@@ -51,7 +53,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
         date: date.toISOString(),
         ghatId: ghat.id,
         ghatName: ghat.name,
-        timeSlot: timeSlot.time,
+        timeSlot: selectedSlot.time,
         createdAt: new Date().toISOString()
     });
 
@@ -64,7 +66,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
         data: {
             id: uniqueId,
             ghatName: ghat.name,
-            timeSlot: timeSlot.time,
+            timeSlot: selectedSlot.time,
             date: date,
             telegramUrl: telegramUrl,
         }

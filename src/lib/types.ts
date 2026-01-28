@@ -20,4 +20,5 @@ export type RegistrationPayload = {
   numberOfPeople: number;
   date: Date;
   ghat: string; // This will be the shortName
+  timeSlot: string;
 };

@@ -1,10 +1,13 @@
-import { getGhatsData } from '@/lib/data';
 import { GhatCard } from './GhatCard';
 import { Bell } from 'lucide-react';
+import type { Ghat, TimeSlot } from '@/lib/types';
 
-export default async function LiveSlotTracker() {
-  const ghats = await getGhatsData();
+type LiveSlotTrackerProps = {
+    ghats: Ghat[];
+    onSlotSelect: (ghat: Ghat, slot: TimeSlot) => void;
+}
 
+export default function LiveSlotTracker({ ghats, onSlotSelect }: LiveSlotTrackerProps) {
   return (
     <section id="slots" className="py-20">
       <div className="container">
@@ -22,7 +25,7 @@ export default async function LiveSlotTracker() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {ghats.map(ghat => (
-            <GhatCard key={ghat.id} ghat={ghat} />
+            <GhatCard key={ghat.id} ghat={ghat} onSlotSelect={onSlotSelect} />
           ))}
         </div>
       </div>

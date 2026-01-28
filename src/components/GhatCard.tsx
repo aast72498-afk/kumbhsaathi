@@ -1,20 +1,22 @@
-import type { Ghat } from '@/lib/types';
+"use client";
+
+import type { Ghat, TimeSlot } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
+import { Button } from './ui/button';
 
 const getStatus = (current: number, max: number) => {
   const percentage = (current / max) * 100;
-  if (percentage >= 95) return { label: 'Full', color: 'bg-red-500 hover:bg-red-500/90', textColor: 'text-white' };
-  if (percentage >= 70) return { label: 'Filling Fast', color: 'bg-orange-400 hover:bg-orange-400/90', textColor: 'text-white' };
-  return { label: 'Available', color: 'bg-green-500 hover:bg-green-500/90', textColor: 'text-white' };
+  if (percentage >= 100) return { label: 'Full', disabled: true };
+  if (percentage >= 70) return { label: 'Filling Fast', disabled: false };
+  return { label: 'Available', disabled: false };
 };
 
-export function GhatCard({ ghat }: { ghat: Ghat }) {
+export function GhatCard({ ghat, onSlotSelect }: { ghat: Ghat, onSlotSelect: (ghat: Ghat, slot: TimeSlot) => void }) {
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-primary/20 hover:shadow-2xl transition-shadow duration-300 rounded-2xl border-2 border-transparent hover:border-primary/50">
+    <Card className="overflow-hidden shadow-lg hover:shadow-primary/20 hover:shadow-2xl transition-shadow duration-300 rounded-2xl border-2 border-transparent hover:border-primary/50 flex flex-col">
       <CardHeader className="p-0">
         <div className="relative h-48 w-full">
             <Image
@@ -29,17 +31,23 @@ export function GhatCard({ ghat }: { ghat: Ghat }) {
              <CardTitle className="absolute bottom-4 left-4 font-headline text-2xl text-white">{ghat.name}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-6 flex-1 flex flex-col">
         <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2"><Clock className="w-4 h-4" /> Time Slots</h3>
-        <ul className="space-y-3">
+        <ul className="space-y-3 flex-1">
           {ghat.timeSlots.map(slot => {
             const status = getStatus(slot.currentRegistrations, slot.maxCapacity);
             return (
               <li key={slot.id} className="flex justify-between items-center bg-secondary/50 p-3 rounded-lg">
                 <span className="font-medium text-foreground">{slot.time}</span>
-                <Badge className={cn("text-xs font-bold", status.color, status.textColor)}>
-                  {status.label}
-                </Badge>
+                <Button 
+                    size="sm"
+                    onClick={() => onSlotSelect(ghat, slot)} 
+                    disabled={status.disabled}
+                    variant={status.disabled ? 'destructive' : 'default'}
+                    className="font-bold"
+                >
+                    {status.label === 'Full' ? 'Full' : 'Book Now'}
+                </Button>
               </li>
             )
           })}
