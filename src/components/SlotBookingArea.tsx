@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import LiveSlotTracker from '@/components/LiveSlotTracker';
 import RegistrationSection from '@/components/RegistrationSection';
@@ -38,7 +38,7 @@ export default function SlotBookingArea({ ghatOptions }: SlotBookingAreaProps) {
   const [selection, setSelection] = useState<{ ghat: Ghat; slot: TimeSlot } | null>(null);
   const firestore = useFirestore();
   
-  const ghatsCollection = firestore ? collection(firestore, 'ghats') : null;
+  const ghatsCollection = useMemo(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
   const { data: ghats, loading } = useCollection<Ghat>(ghatsCollection);
 
   const handleSlotSelect = (ghat: Ghat, slot: TimeSlot) => {
