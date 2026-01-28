@@ -9,9 +9,9 @@ import { Button } from './ui/button';
 
 const getStatus = (current: number, max: number) => {
   const percentage = (current / max) * 100;
-  if (percentage >= 100) return { label: 'Full', disabled: true };
-  if (percentage >= 70) return { label: 'Filling Fast', disabled: false };
-  return { label: 'Available', disabled: false };
+  if (percentage >= 100) return { label: 'Full', disabled: true, variant: 'destructive' as const };
+  if (percentage >= 70) return { label: 'Filling Fast', disabled: false, variant: 'secondary' as const };
+  return { label: 'Available', disabled: false, variant: 'default' as const };
 };
 
 export function GhatCard({ ghat, onSlotSelect }: { ghat: Ghat, onSlotSelect: (ghat: Ghat, slot: TimeSlot) => void }) {
@@ -40,21 +40,14 @@ export function GhatCard({ ghat, onSlotSelect }: { ghat: Ghat, onSlotSelect: (gh
               <li key={slot.id} className="flex justify-between items-center bg-secondary/50 p-3 rounded-lg">
                 <span className="font-medium text-foreground">{slot.time}</span>
                 <div className='flex items-center gap-2'>
-                    <span 
-                        className={cn('text-sm font-bold', {
-                            'text-green-600': status.label === 'Available',
-                            'text-orange-500': status.label === 'Filling Fast',
-                            'text-red-600': status.label === 'Full',
-                        })}
-                    >{status.label}</span>
                     <Button 
                         size="sm"
                         onClick={() => onSlotSelect(ghat, slot)} 
                         disabled={status.disabled}
-                        variant={status.disabled ? 'destructive' : 'default'}
-                        className="font-bold w-[110px]"
+                        variant={status.variant}
+                        className="font-bold w-[120px]"
                     >
-                        {status.label === 'Full' ? 'Full' : 'Book Now'}
+                        {status.label === 'Available' ? 'Book Now' : status.label}
                     </Button>
                 </div>
               </li>
