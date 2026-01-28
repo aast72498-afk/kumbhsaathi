@@ -157,7 +157,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
             ticketID: resultData.uniqueId
         });
 
-        const telegramBotUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "KumbhSaathiOfficialBot";
+        const telegramBotUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "KumbhSaathi_bot";
         const telegramUrl = `https://t.me/${telegramBotUsername}?start=${resultData.uniqueId}`;
 
         return {
