@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ListFilter } from 'lucide-react';
+import { ListFilter, Loader2 } from 'lucide-react';
 
 type LogEntry = {
   id: string;
@@ -18,7 +18,7 @@ type LogEntry = {
   details: string;
 };
 
-const mockLogs: LogEntry[] = [
+const generateMockLogs = (): LogEntry[] => [
   { id: 'log-1', timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(), action: 'ROUTE_CLEAR', performedBy: 'Admin_01', location: 'Near Ram Kund', details: 'Cleared route for vehicle AMB-01.' },
   { id: 'log-2', timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), action: 'CROWD_ALERT', performedBy: 'System (Auto)', location: 'Laxman Kund', details: 'High crowd density detected (95%).' },
   { id: 'log-3', timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(), action: 'CASE_CREATED', performedBy: 'Helpdesk_04', location: 'Tapovan Area', details: 'Missing person case MP-83419 created.' },
@@ -45,7 +45,11 @@ const formatTimestamp = (isoString: string) => {
 }
 
 export default function SystemLogsPage() {
-    const [logs] = useState<LogEntry[]>(mockLogs);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+
+    useEffect(() => {
+        setLogs(generateMockLogs());
+    }, []);
 
   return (
     <Card>
@@ -88,7 +92,7 @@ export default function SystemLogsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs.map((log) => (
+            {logs.length > 0 ? logs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="font-mono text-xs">{formatTimestamp(log.timestamp)}</TableCell>
                 <TableCell>
@@ -98,7 +102,13 @@ export default function SystemLogsPage() {
                 <TableCell>{log.location}</TableCell>
                 <TableCell className="text-muted-foreground">{log.details}</TableCell>
               </TableRow>
-            ))}
+            )) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
