@@ -50,6 +50,7 @@ type SuccessData = {
 declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
   }
 }
 
@@ -65,7 +66,6 @@ export default function BookingInterface() {
 
   // OTP State
   const auth = useAuth();
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -99,25 +99,6 @@ export default function BookingInterface() {
     setSelectedDate(new Date());
   }, []);
 
-  // Initialize and clean up reCAPTCHA verifier
-  useEffect(() => {
-    if (auth && !ghatsLoading && !window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        }
-      });
-    }
-    // Cleanup
-    return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
-    }
-  }, [auth, ghatsLoading]);
-
-
   const handleGhatSelect = (ghat: Ghat) => {
     setSelectedGhat(ghat);
     setSelectedSlot(null); // Reset slot when ghat changes
@@ -135,7 +116,10 @@ export default function BookingInterface() {
     form.reset();
     setOtpSent(false);
     setOtp('');
-    setConfirmationResult(null);
+    window.confirmationResult = undefined;
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+    }
   }
 
   // --- Download Ticket Logic ---
@@ -156,33 +140,50 @@ export default function BookingInterface() {
   const handleSendOtp = async (data: BookingFormValues) => {
     setIsLoading(true);
     setError(null);
-    if (!auth || !window.recaptchaVerifier) {
+
+    if (!auth) {
         setError("Authentication service is not ready. Please try again in a moment.");
         setIsLoading(false);
         return;
     }
     
-    const appVerifier = window.recaptchaVerifier;
-    
     try {
-      const phoneNumber = "+91" + data.mobileNumber;
-      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        // Ensure old verifier is cleared
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+        }
+
+        const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+        });
+        
+        window.recaptchaVerifier = appVerifier;
       
-      setConfirmationResult(result);
-      setOtpSent(true);
-      toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
+        const phoneNumber = "+91" + data.mobileNumber;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      
+        window.confirmationResult = confirmationResult;
+        setOtpSent(true);
+        toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
 
     } catch (e: any) {
-        setError(`Failed to send OTP: ${e.message}`);
+        let errorMessage = "An unexpected error occurred. Please try again.";
+        if (e.code === 'auth/argument-error') {
+            errorMessage = "reCAPTCHA failed to initialize. Please refresh and try again.";
+        } else if (e.code === 'auth/operation-not-allowed') {
+            errorMessage = "Phone authentication is not enabled for this app. Please contact support.";
+        } else {
+            errorMessage = `Failed to send OTP: ${e.message}`;
+        }
+        setError(errorMessage);
         console.error("OTP Send Error:", e);
-        // Reset verifier on error for retry
-        appVerifier.clear();
     } finally {
         setIsLoading(false);
     }
   };
 
   const handleVerifyAndBook = async () => {
+    const confirmationResult = window.confirmationResult;
     if (!confirmationResult || otp.length !== 6) {
         setError("Please enter a valid 6-digit OTP.");
         return;
@@ -271,9 +272,9 @@ export default function BookingInterface() {
 
   return (
     <Card className="w-full max-w-4xl shadow-2xl rounded-2xl overflow-hidden bg-white/30 backdrop-blur-lg border-white/20">
+        <div id="recaptcha-container"></div>
         <div className={cn("grid grid-cols-1", successData ? 'md:grid-cols-3' : 'md:grid-cols-1')}>
             <div className={cn("p-6 sm:p-8 col-span-1", successData ? 'md:col-span-2' : 'md:col-span-1')}>
-                 <div id="recaptcha-container"></div>
                  <div className='flex justify-between items-start mb-6 -mt-2'>
                     <div>
                         <h1 className="font-headline text-3xl font-bold text-gray-800">Safe Ghat Slot Booking</h1>
