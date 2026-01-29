@@ -72,8 +72,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Link href="#"><Search />Missing Persons</Link>
+                                <SidebarMenuButton asChild isActive={pathname === '/admin/missing-persons'}>
+                                    <Link href="/admin/missing-persons"><Search />Missing Persons</Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
