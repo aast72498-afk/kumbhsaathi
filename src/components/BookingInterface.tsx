@@ -252,6 +252,7 @@ export default function BookingInterface() {
 
   return (
     <Card className="w-full max-w-4xl shadow-2xl rounded-2xl overflow-hidden bg-white/30 backdrop-blur-lg border-white/20">
+        <div id="recaptcha-container"></div>
         <div className={cn("grid grid-cols-1", successData ? 'md:grid-cols-3' : 'md:grid-cols-1')}>
             <div className={cn("p-6 sm:p-8 col-span-1", successData ? 'md:col-span-2' : 'md:col-span-1')}>
                  <div className='flex justify-between items-start mb-6 -mt-2'>
@@ -366,7 +367,6 @@ export default function BookingInterface() {
                                 
                                 {!otpSent ? (
                                     <>
-                                        <div id="recaptcha-container"></div>
                                         <Button type="button" size="lg" className="w-full font-bold" onClick={form.handleSubmit(handleSendOtp)} disabled={isLoading}>
                                             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending OTP...</> : 'Confirm and Send OTP'}
                                         </Button>
