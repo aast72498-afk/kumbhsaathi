@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,9 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import QRCode from 'react-qr-code';
 import html2canvas from 'html2canvas';
+import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 
-
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useAuth } from '@/firebase';
 import { registerPilgrim } from '@/app/actions';
 import type { Ghat, TimeSlot, RegistrationPayload } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,12 @@ type SuccessData = {
     numberOfPeople: number;
 }
 
+declare global {
+  interface Window {
+    recaptchaVerifier: RecaptchaVerifier;
+  }
+}
+
 // --- Main Booking Component ---
 export default function BookingInterface() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -56,6 +62,14 @@ export default function BookingInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+
+  // OTP State
+  const auth = useAuth();
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
 
   const ticketRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -80,6 +94,17 @@ export default function BookingInterface() {
     defaultValues: { fullName: "", mobileNumber: "", numberOfPeople: 1 },
   });
 
+  useEffect(() => {
+    if (auth && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+  }, [auth]);
+
   const handleGhatSelect = (ghat: Ghat) => {
     setSelectedGhat(ghat);
     setSelectedSlot(null); // Reset slot when ghat changes
@@ -95,6 +120,9 @@ export default function BookingInterface() {
     setSuccessData(null);
     setError(null);
     form.reset();
+    setOtpSent(false);
+    setOtp('');
+    setConfirmationResult(null);
   }
 
   // --- Download Ticket Logic ---
@@ -112,15 +140,57 @@ export default function BookingInterface() {
     }
   };
 
+  const handleSendOtp = async (data: BookingFormValues) => {
+    setIsLoading(true);
+    setError(null);
+    if (!auth) {
+        setError("Authentication service is not available.");
+        setIsLoading(false);
+        return;
+    }
+    const appVerifier = window.recaptchaVerifier;
+    const phoneNumber = "+91" + data.mobileNumber;
+    try {
+        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        setConfirmationResult(result);
+        setOtpSent(true);
+        toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
+    } catch (e: any) {
+        setError(`Failed to send OTP: ${e.message}`);
+        console.error("OTP Send Error:", e);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleVerifyAndBook = async () => {
+    if (!confirmationResult || otp.length !== 6) {
+        setError("Please enter a valid 6-digit OTP.");
+        return;
+    }
+    setIsVerifying(true);
+    setError(null);
+    try {
+        await confirmationResult.confirm(otp);
+        // OTP is correct, now submit the booking
+        await processBooking(form.getValues());
+    } catch (e: any) {
+        setError("Invalid or expired OTP. Please try again.");
+        console.error("OTP Verification Error:", e);
+    } finally {
+        setIsVerifying(false);
+    }
+  }
 
   // --- Form Submission Logic ---
-  async function onSubmit(data: BookingFormValues) {
+  async function processBooking(data: BookingFormValues) {
     if (!selectedDate || !selectedGhat || !selectedSlot) {
       setError("Please complete all steps before confirming.");
       return;
     }
     
-    setIsLoading(true);
+    // Use isVerifying state for the final booking process
+    setIsVerifying(true);
     setError(null);
 
     const payload = {
@@ -136,21 +206,11 @@ export default function BookingInterface() {
         setSuccessData(result.data as SuccessData);
       } else {
         setError(result.error || "An unknown error occurred.");
-         toast({
-          variant: "destructive",
-          title: "Registration Failed",
-          description: result.error || "An unknown error occurred.",
-        });
       }
     } catch (e: any) {
       setError("Failed to connect to the server. Please try again.");
-       toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: e.message || "Failed to connect to the server.",
-        });
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   }
 
@@ -281,7 +341,7 @@ export default function BookingInterface() {
                     <motion.div key="step4" {...motionProps}>
                          <h2 className='text-lg font-semibold flex items-center gap-2 mb-4'><span className='flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-sm'>4</span>Confirm Your Details</h2>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <form className="space-y-4">
                                 <FormField control={form.control} name="fullName" render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Full Name</FormLabel>
@@ -303,16 +363,44 @@ export default function BookingInterface() {
                                     <FormMessage />
                                     </FormItem>
                                 )}/>
+                                
+                                {!otpSent ? (
+                                    <>
+                                        <div id="recaptcha-container"></div>
+                                        <Button type="button" size="lg" className="w-full font-bold" onClick={form.handleSubmit(handleSendOtp)} disabled={isLoading}>
+                                            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending OTP...</> : 'Confirm and Send OTP'}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <div className="space-y-4 pt-4 border-t-2 border-dashed">
+                                        <p className="text-center text-sm text-muted-foreground">An OTP has been sent to {form.getValues('mobileNumber')}.</p>
+                                        <FormField control={form.control} name="mobileNumber" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Enter 6-Digit OTP</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        id="otp"
+                                                        value={otp}
+                                                        onChange={(e) => setOtp(e.target.value)}
+                                                        placeholder="______"
+                                                        maxLength={6}
+                                                        className="bg-white/50 text-center text-2xl font-bold tracking-[0.5em]"
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                        <Button type="button" size="lg" className="w-full font-bold" onClick={handleVerifyAndBook} disabled={isVerifying || !otp || otp.length < 6}>
+                                            {isVerifying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying & Booking...</> : 'Verify OTP & Confirm Slot'}
+                                        </Button>
+                                    </div>
+                                )}
                                 {error && (
-                                    <Alert variant="destructive">
+                                    <Alert variant="destructive" className="mt-4">
                                         <AlertCircle className="h-4 w-4" />
-                                        <AlertTitle>Registration Failed</AlertTitle>
+                                        <AlertTitle>An Error Occurred</AlertTitle>
                                         <AlertDescription>{error}</AlertDescription>
                                     </Alert>
                                 )}
-                                <Button type="submit" size="lg" className="w-full font-bold" disabled={isLoading}>
-                                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Divine ID...</> : 'Confirm Slot'}
-                                </Button>
                             </form>
                         </Form>
                     </motion.div>

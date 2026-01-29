@@ -87,7 +87,7 @@
     }
   },
   "auth": {
-    "providers": []
+    "providers": ["phone"]
   },
   "firestore": {
     "/registrations/{registrationId}": {
