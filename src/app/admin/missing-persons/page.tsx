@@ -51,6 +51,11 @@ export default function MissingPersonsPage() {
     }, []);
     
     useEffect(() => {
+        // If the selected report is no longer in the list (e.g., deleted), clear the selection.
+        if (selectedReport && reports && !reports.find(r => r.id === selectedReport.id)) {
+            setSelectedReport(null);
+        }
+        
         if (reports && reports.length > 0 && !selectedReport) {
             setSelectedReport(reports[0]);
         }
@@ -61,7 +66,10 @@ export default function MissingPersonsPage() {
         setIsUpdatingStatus(true);
         const result = await updateMissingPersonStatus(selectedReport.id, status);
         if (result.success) {
-            toast({ title: "Status Updated Successfully" });
+            toast({ title: "Action Successful", description: result.message });
+            if (status === 'Found') {
+                // The useEffect hook will handle clearing the selection
+            }
         } else {
             toast({ variant: 'destructive', title: "Update Failed", description: result.error });
         }

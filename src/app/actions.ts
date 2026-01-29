@@ -12,6 +12,7 @@ import {
     limit,
     where,
     updateDoc,
+    deleteDoc,
     DocumentReference,
     DocumentData
 } from 'firebase/firestore';
@@ -244,8 +245,14 @@ export async function updateMissingPersonStatus(reportId: string, status: 'Under
     }
     try {
         const reportRef = doc(firestore, "missing_persons", reportId);
-        await updateDoc(reportRef, { status });
-        return { success: true, message: "Status updated successfully." };
+        
+        if (status === 'Found') {
+            await deleteDoc(reportRef);
+            return { success: true, message: "Case marked as found and data has been deleted for privacy." };
+        } else {
+            await updateDoc(reportRef, { status });
+            return { success: true, message: "Status updated successfully." };
+        }
     } catch (e: any) {
         console.error("Failed to update status:", e);
         return { success: false, error: e.message || "An error occurred while updating status." };
