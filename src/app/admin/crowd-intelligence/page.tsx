@@ -12,45 +12,70 @@ import { Button } from '@/components/ui/button';
 
 type Trend = 'increasing' | 'decreasing' | 'stable';
 
-const getCrowdStatus = (ghat: Ghat) => {
-    const totalCapacity = ghat.timeSlots.reduce((sum, slot) => sum + slot.maxCapacity, 0);
-    const totalRegistrations = ghat.timeSlots.reduce((sum, slot) => sum + slot.currentRegistrations, 0);
-    if(totalCapacity === 0) return { density: 0, label: 'Low' };
-    const density = (totalRegistrations / totalCapacity) * 100;
+const HeatmapPoint = ({ name, top, left, currentRegistrations, maxCapacity }: { name: string; top: string; left: string; currentRegistrations: number; maxCapacity: number; }) => {
+    const density = maxCapacity > 0 ? (currentRegistrations / maxCapacity) * 100 : Math.random() * 100;
     
-    if (density > 75) return { density, label: 'High' };
-    if (density > 40) return { density, label: 'Moderate' };
-    return { density, label: 'Low' };
-};
+    let label = 'Low';
+    let color = 'bg-green-500';
+    if (density > 75) {
+        label = 'High';
+        color = 'bg-red-500';
+    } else if (density > 40) {
+        label = 'Moderate';
+        color = 'bg-yellow-500';
+    }
 
-const HeatmapPoint = ({ ghat, top, left }: { ghat: Ghat; top: string; left: string; }) => {
-    const { label } = getCrowdStatus(ghat);
-    const color = {
-        'Low': 'bg-green-500',
-        'Moderate': 'bg-yellow-500',
-        'High': 'bg-red-500'
-    }[label];
+    const size = 25 + (density / 100) * 25; // size from 25px to 50px
+
     return (
-        <div className={cn("absolute rounded-full animate-pulse", color)} style={{ top, left, width: '20px', height: '20px', borderWidth: '3px' }}>
-             <span className="relative flex h-full w-full">
+        <div className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer" style={{ top, left }}>
+            <div className={cn("relative rounded-full flex items-center justify-center font-bold text-white text-sm border-2 border-background/50 shadow-lg", color)} style={{ width: `${size}px`, height: `${size}px` }}>
                 <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", color)}></span>
-                <span className={cn("relative inline-flex rounded-full h-full w-full border-2 border-background", color)}></span>
-            </span>
+                <span className="relative z-10">{currentRegistrations}</span>
+            </div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2">
+                <span className="text-xs font-bold text-card-foreground bg-card/80 backdrop-blur-sm px-2 py-1 rounded-md shadow-md">{name}</span>
+            </div>
         </div>
     );
 };
 
 const CrowdHeatmap = ({ ghats }: { ghats: Ghat[] | null }) => {
+    // Positions for Ghats from Firestore
     const ghatPositions: { [key: string]: { top: string; left: string } } = {
         'ram-kund-ghat': { top: '25%', left: '30%' },
-        'tapovan-ghat': { top: '50%', left: '60%' },
-        'laxman-kund-ghat': { top: '75%', left: '40%' },
+        'tapovan-ghat': { top: '50%', left: '70%' },
+        'laxman-kund-ghat': { top: '75%', left: '45%' },
     };
+
+    // Additional static locations
+    const staticLocations = [
+        { id: 'panchavati', name: 'Panchavati Area', position: { top: '40%', left: '50%' }, currentRegistrations: 730, maxCapacity: 1000 },
+        { id: 'sita-gufa', name: 'Sita Gufa', position: { top: '30%', left: '15%' }, currentRegistrations: 150, maxCapacity: 300 },
+        { id: 'kalaram-temple', name: 'Kalaram Temple', position: { top: '65%', left: '25%' }, currentRegistrations: 450, maxCapacity: 600 },
+    ];
+
+    const allPoints = useMemo(() => {
+        const ghatPoints = ghats?.map(ghat => {
+            const pos = ghatPositions[ghat.id];
+            if (!pos) return null;
+            return {
+                id: ghat.id,
+                name: ghat.name,
+                position: pos,
+                currentRegistrations: ghat.timeSlots.reduce((sum, slot) => sum + slot.currentRegistrations, 0),
+                maxCapacity: ghat.timeSlots.reduce((sum, slot) => sum + slot.maxCapacity, 0)
+            }
+        }).filter(Boolean) as any[] || [];
+
+        return [...ghatPoints, ...staticLocations];
+    }, [ghats]);
+
 
     return (
         <Card className="h-[600px]">
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Ghats Heatmap</CardTitle>
+                <CardTitle>Ghats & Hotspots Heatmap</CardTitle>
                  <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500"></span> Low</div>
                     <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500"></span> Moderate</div>
@@ -60,11 +85,16 @@ const CrowdHeatmap = ({ ghats }: { ghats: Ghat[] | null }) => {
             <CardContent className="h-full">
                 <div className="relative h-full w-full rounded-lg bg-muted-foreground/10 border flex items-center justify-center">
                     <p className="text-muted-foreground">Interactive City Map Placeholder</p>
-                    {ghats?.map(ghat => {
-                         const pos = ghatPositions[ghat.id];
-                         if (!pos) return null;
-                         return <HeatmapPoint key={ghat.id} ghat={ghat} top={pos.top} left={pos.left} />
-                    })}
+                    {allPoints.map(point => (
+                         <HeatmapPoint 
+                            key={point.id} 
+                            name={point.name}
+                            top={point.position.top}
+                            left={point.position.left}
+                            currentRegistrations={point.currentRegistrations}
+                            maxCapacity={point.maxCapacity}
+                         />
+                    ))}
                 </div>
             </CardContent>
         </Card>
