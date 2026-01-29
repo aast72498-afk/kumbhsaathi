@@ -47,12 +47,6 @@ type SuccessData = {
     numberOfPeople: number;
 }
 
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
 
 // --- Main Booking Component ---
 export default function BookingInterface() {
@@ -69,6 +63,7 @@ export default function BookingInterface() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
 
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -116,10 +111,7 @@ export default function BookingInterface() {
     form.reset();
     setOtpSent(false);
     setOtp('');
-    window.confirmationResult = undefined;
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-    }
+    setConfirmationResult(null);
   }
 
   // --- Download Ticket Logic ---
@@ -148,28 +140,21 @@ export default function BookingInterface() {
     }
     
     try {
-        // Ensure old verifier is cleared
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
-        }
-
         const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible',
         });
-        
-        window.recaptchaVerifier = appVerifier;
       
         const phoneNumber = "+91" + data.mobileNumber;
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
       
-        window.confirmationResult = confirmationResult;
+        setConfirmationResult(confirmation);
         setOtpSent(true);
         toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
 
     } catch (e: any) {
         let errorMessage = "An unexpected error occurred. Please try again.";
-        if (e.code === 'auth/argument-error') {
-            errorMessage = "reCAPTCHA failed to initialize. Please refresh and try again.";
+        if (e.code === 'auth/argument-error' || e.message.includes('reCAPTCHA')) {
+            errorMessage = "reCAPTCHA verification failed. Please refresh and try again.";
         } else if (e.code === 'auth/operation-not-allowed') {
             errorMessage = "Phone authentication is not enabled for this app. Please contact support.";
         } else {
@@ -183,7 +168,6 @@ export default function BookingInterface() {
   };
 
   const handleVerifyAndBook = async () => {
-    const confirmationResult = window.confirmationResult;
     if (!confirmationResult || otp.length !== 6) {
         setError("Please enter a valid 6-digit OTP.");
         return;
