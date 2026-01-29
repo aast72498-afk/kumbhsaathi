@@ -146,7 +146,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </header>
                     <main className="flex-1 p-4 lg:p-6">{children}</main>
                     <footer className="border-t px-6 py-3 text-center text-xs text-muted-foreground">
-                       No Facial Data Stored | Real-time Firebase Sync | Auto-Delete Enabled
+                       No Facial Data Stored | Real-time Firebase Sync | All actions logged for accountability
                     </footer>
                 </SidebarInset>
             </SidebarProvider>

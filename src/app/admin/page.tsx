@@ -47,6 +47,10 @@ export default function AdminDashboard() {
         return timeB - timeA;
     });
   }, [missingPersons, healthAlerts]);
+  
+  const hasActiveHealthEmergency = useMemo(() => {
+      return healthAlerts?.some(alert => alert.status === 'Pending' || alert.status === 'On-site');
+  }, [healthAlerts]);
 
   const getAlertIcon = (type: 'Missing Person' | 'Health Emergency') => {
     switch (type) {
@@ -173,7 +177,7 @@ export default function AdminDashboard() {
                 <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-2">
-                <Button variant="destructive" className="w-full justify-start">Clear Emergency Route</Button>
+                <Button variant="destructive" className="w-full justify-start" disabled={!hasActiveHealthEmergency}>Clear Emergency Route</Button>
                 <Button variant="outline" className="w-full justify-start">Broadcast Crowd Alert</Button>
                 <Button variant="outline" className="w-full justify-start">Lock Ghat Entry</Button>
             </CardContent>
