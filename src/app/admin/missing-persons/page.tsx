@@ -40,11 +40,14 @@ export default function MissingPersonsPage() {
     const [selectedReport, setSelectedReport] = useState<ReportWithId | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isClient, setIsClient] = useState(false);
-    
+    const [, setNow] = useState(new Date());
+
     const { toast } = useToast();
 
     useEffect(() => {
         setIsClient(true);
+        const interval = setInterval(() => setNow(new Date()), 60000); // Update every minute
+        return () => clearInterval(interval);
     }, []);
     
     useEffect(() => {
@@ -124,8 +127,17 @@ export default function MissingPersonsPage() {
                                         <TableCell>
                                             <Badge variant={getStatusVariant(report.status)}>{report.status}</Badge>
                                         </TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">
-                                            {report.createdAt ? formatDistanceToNow(report.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
+                                        <TableCell className="text-xs">
+                                            {report.createdAt ? (
+                                                <>
+                                                    <div className="font-medium text-foreground">
+                                                        {formatDistanceToNow(report.createdAt.toDate(), { addSuffix: true })}
+                                                    </div>
+                                                    <div className="text-muted-foreground">
+                                                        {report.createdAt.toDate().toLocaleString()}
+                                                    </div>
+                                                </>
+                                            ) : 'N/A'}
                                         </TableCell>
                                     </TableRow>
                                 ))}
