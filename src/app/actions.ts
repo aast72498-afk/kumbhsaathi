@@ -14,10 +14,11 @@ import {
     updateDoc,
     deleteDoc,
     DocumentReference,
-    DocumentData
+    DocumentData,
+    getDoc
 } from 'firebase/firestore';
 import { getFirebaseServer } from '@/firebase/server';
-import type { RegistrationPayload, Ghat, MissingPersonReportPayload, HealthEmergencyPayload } from '@/lib/types';
+import type { RegistrationPayload, Ghat, MissingPersonReportPayload, HealthEmergencyPayload, MissingPersonReport } from '@/lib/types';
 import { mockGhats } from '@/lib/data';
 
 // --- Database Seeding Action ---
@@ -191,16 +192,11 @@ export async function reportMissingPerson(data: MissingPersonReportPayload) {
             ...data,
             caseId,
             status: 'Pending',
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            broadcastSent: false
         };
 
         await addDoc(collection(firestore, "missing_persons"), reportData);
-        
-        await sendWebhook({
-            type: 'Missing Person',
-            caseId,
-            ...data
-        });
 
         return { success: true, message: "Missing person case reported successfully." };
     } catch (e: any) {
@@ -261,5 +257,44 @@ export async function updateMissingPersonStatus(reportId: string, status: 'Under
     } catch (e: any) {
         console.error("Failed to update status:", e);
         return { success: false, error: e.message || "An error occurred while updating status." };
+    }
+}
+
+
+export async function broadcastMissingPersonAlert(reportId: string) {
+    const { firestore } = getFirebaseServer();
+    if (!reportId) {
+        return { success: false, error: "Report ID is missing." };
+    }
+
+    const reportRef = doc(firestore, "missing_persons", reportId);
+
+    try {
+        const reportSnap = await getDoc(reportRef);
+        if (!reportSnap.exists()) {
+            return { success: false, error: "Report not found." };
+        }
+
+        const reportData = reportSnap.data() as MissingPersonReport;
+
+        if (reportData.broadcastSent) {
+            return { success: true, message: "Alert has already been broadcast for this case." };
+        }
+
+        // Send the broadcast via webhook
+        await sendWebhook({
+            type: 'Missing Person Broadcast',
+            ...reportData,
+            // Convert timestamp if it exists and is a Firestore Timestamp
+            createdAt: reportData.createdAt?.toDate ? reportData.createdAt.toDate().toISOString() : reportData.createdAt,
+        });
+
+        // Update the document to mark broadcast as sent
+        await updateDoc(reportRef, { broadcastSent: true });
+
+        return { success: true, message: "Alert broadcasted to volunteers successfully." };
+    } catch (e: any) {
+        console.error("Failed to broadcast alert:", e);
+        return { success: false, error: e.message || "An error occurred while broadcasting the alert." };
     }
 }

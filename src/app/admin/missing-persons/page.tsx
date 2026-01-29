@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useCollection, useFirestore } from '@/firebase';
-import { updateMissingPersonStatus } from '@/app/actions';
+import { updateMissingPersonStatus, broadcastMissingPersonAlert } from '@/app/actions';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, X, UserCircle, Phone, MapPin, Milestone, MessageSquare, Image as ImageIcon } from 'lucide-react';
+import { Loader2, X, UserCircle, Phone, MapPin, Milestone, MessageSquare, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -39,6 +39,7 @@ export default function MissingPersonsPage() {
     
     const [selectedReport, setSelectedReport] = useState<ReportWithId | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
     const [isClient, setIsClient] = useState(false);
     const [, setNow] = useState(new Date());
 
@@ -74,6 +75,19 @@ export default function MissingPersonsPage() {
             toast({ variant: 'destructive', title: "Update Failed", description: result.error });
         }
         setIsUpdatingStatus(false);
+    };
+
+    const handleBroadcast = async () => {
+        if (!selectedReport) return;
+        setIsBroadcasting(true);
+        const result = await broadcastMissingPersonAlert(selectedReport.id);
+        if (result.success) {
+            toast({ title: "Broadcast Sent", description: result.message });
+            // The report in the list will be updated by the onSnapshot listener from useCollection
+        } else {
+            toast({ variant: 'destructive', title: "Broadcast Failed", description: result.error });
+        }
+        setIsBroadcasting(false);
     };
 
     const getStatusVariant = (status: ReportWithId['status']) => {
@@ -171,6 +185,15 @@ export default function MissingPersonsPage() {
                                     <CardDescription>Reported by contact: {selectedReport.reporterContact}</CardDescription>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                     <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={handleBroadcast}
+                                        disabled={isBroadcasting || selectedReport.broadcastSent}
+                                    >
+                                        {isBroadcasting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
+                                        {selectedReport.broadcastSent ? 'Alert Sent' : 'Broadcast Alert'}
+                                    </Button>
                                      <Button size="sm" variant="outline" onClick={() => handleStatusUpdate('Under Investigation')} disabled={isUpdatingStatus || selectedReport.status === 'Under Investigation'}>
                                         Investigating
                                     </Button>

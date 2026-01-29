@@ -37,6 +37,7 @@ export type MissingPersonReport = MissingPersonReportPayload & {
     caseId: string;
     status: 'Pending' | 'Under Investigation' | 'Found';
     createdAt: any; // Firestore Timestamp
+    broadcastSent?: boolean;
 };
 
 export type HealthEmergencyPayload = {

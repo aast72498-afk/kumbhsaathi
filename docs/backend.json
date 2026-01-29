@@ -62,7 +62,8 @@
         "photoUrl": { "type": "string", "description": "A data URL of the missing person's photo." },
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["Pending", "Under Investigation", "Found"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "broadcastSent": { "type": "boolean", "description": "Whether an alert has been broadcasted for this case." }
       },
       "required": ["caseId", "missingPersonName", "reporterContact", "lastSeenGhat", "detailedLocation", "description", "status", "createdAt"]
     },
