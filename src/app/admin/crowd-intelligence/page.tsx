@@ -53,6 +53,10 @@ const CrowdHeatmap = ({ ghats }: { ghats: Ghat[] | null }) => {
         { id: 'panchavati', name: 'Panchavati Area', position: { top: '40%', left: '50%' }, currentRegistrations: 730, maxCapacity: 1000 },
         { id: 'sita-gufa', name: 'Sita Gufa', position: { top: '30%', left: '15%' }, currentRegistrations: 150, maxCapacity: 300 },
         { id: 'kalaram-temple', name: 'Kalaram Temple', position: { top: '65%', left: '25%' }, currentRegistrations: 450, maxCapacity: 600 },
+        { id: 'main-entry-north', name: 'Main Entry (North)', position: { top: '10%', left: '50%' }, currentRegistrations: 950, maxCapacity: 1200 },
+        { id: 'exit-south', name: 'South Exit', position: { top: '90%', left: '60%' }, currentRegistrations: 250, maxCapacity: 800 },
+        { id: 'trimbak-road', name: 'Trimbak Road Junction', position: { top: '85%', left: '15%' }, currentRegistrations: 600, maxCapacity: 700 },
+        { id: 'gangapur-road', name: 'Gangapur Road Checkpoint', position: { top: '55%', left: '90%' }, currentRegistrations: 400, maxCapacity: 500 },
     ];
 
     const allPoints = useMemo(() => {
