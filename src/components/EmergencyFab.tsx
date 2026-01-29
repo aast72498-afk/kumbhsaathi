@@ -30,7 +30,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Siren, User, Hospital, Loader2 } from 'lucide-react';
 import { getGhatsForDropdown } from '@/lib/data';
 import { reportMissingPerson, reportHealthEmergency } from '@/app/actions';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Schemas
 const missingPersonSchema = z.object({
@@ -184,15 +183,15 @@ export default function EmergencyFab() {
 
       {/* Missing Person Dialog */}
       <Dialog open={missingPersonOpen} onOpenChange={setMissingPersonOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] grid-rows-[auto_1fr_auto] max-h-[90vh] p-0">
+          <DialogHeader className="p-6 pb-4">
             <DialogTitle>Report a Missing Person</DialogTitle>
             <DialogDescription>
               Please provide as much detail as possible. Your report will be sent to the nearest authorities.
             </DialogDescription>
           </DialogHeader>
-          <Form {...mpForm}>
-            <ScrollArea className="max-h-[60vh] -mx-6 px-6">
+          <div className="overflow-y-auto px-6">
+            <Form {...mpForm}>
                 <form id="missing-person-form" onSubmit={mpForm.handleSubmit(onMissingPersonSubmit)} className="space-y-4 py-4">
                   <FormField control={mpForm.control} name="missingPersonName" render={({ field }) => (
                     <FormItem><FormLabel>Missing Person's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -248,28 +247,28 @@ export default function EmergencyFab() {
                     <FormItem><FormLabel>Description (Clothing, etc.)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </form>
-            </ScrollArea>
-            <DialogFooter>
+            </Form>
+          </div>
+          <DialogFooter className="p-6 pt-4">
               <Button type="submit" form="missing-person-form" disabled={mpForm.formState.isSubmitting}>
                 {mpForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit Report
               </Button>
-            </DialogFooter>
-          </Form>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Health Emergency Dialog */}
       <Dialog open={healthEmergencyOpen} onOpenChange={setHealthEmergencyOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] grid-rows-[auto_1fr_auto] max-h-[90vh] p-0">
+          <DialogHeader className="p-6 pb-4">
             <DialogTitle>Report a Medical Emergency</DialogTitle>
             <DialogDescription>
               Fill in the details below. A medical team will be dispatched immediately.
             </DialogDescription>
           </DialogHeader>
-           <Form {...heForm}>
-            <ScrollArea className="max-h-[60vh] -mx-6 px-6">
+           <div className="overflow-y-auto px-6">
+            <Form {...heForm}>
               <form id="health-emergency-form" onSubmit={heForm.handleSubmit(onHealthEmergencySubmit)} className="space-y-4 py-4">
                   <FormField control={heForm.control} name="reporterName" render={({ field }) => (
                       <FormItem><FormLabel>Your Name</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>
@@ -338,14 +337,14 @@ export default function EmergencyFab() {
                   <FormItem><FormLabel>Additional Details (Optional)</FormLabel><FormControl><Textarea placeholder="Provide any other relevant information" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </form>
-            </ScrollArea>
-            <DialogFooter>
+            </Form>
+           </div>
+          <DialogFooter className="p-6 pt-4">
               <Button type="submit" form="health-emergency-form" disabled={heForm.formState.isSubmitting} className="bg-red-600 hover:bg-red-700">
                 {heForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Dispatch Medical Team
               </Button>
-            </DialogFooter>
-          </Form>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
