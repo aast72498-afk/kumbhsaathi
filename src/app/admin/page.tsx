@@ -155,7 +155,7 @@ export default function AdminDashboard() {
                                 {alert.type === 'Missing Person' ? `Missing: ${alert.missingPersonName}` : `Health: ${alert.issueType}`}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                {alert.createdAt ? `${formatDistanceToNow(alert.createdAt.toDate())} ago` : 'Just now'} at {alert.type === 'Missing Person' ? alert.lastSeenGhat : alert.location}
+                                {alert.createdAt ? `${formatDistanceToNow(alert.createdAt.toDate())} ago` : 'Just now'} at {alert.type === 'Missing Person' ? alert.lastSeenGhat : alert.locationGhat}
                             </p>
                         </div>
                         <Button variant="ghost" size="icon" className="ml-auto" asChild>
