@@ -95,7 +95,7 @@ export default function BookingInterface() {
   });
 
   useEffect(() => {
-    if (auth && !window.recaptchaVerifier) {
+    if (auth && !ghatsLoading && !window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
@@ -103,7 +103,7 @@ export default function BookingInterface() {
         }
       });
     }
-  }, [auth]);
+  }, [auth, ghatsLoading]);
 
   const handleGhatSelect = (ghat: Ghat) => {
     setSelectedGhat(ghat);
