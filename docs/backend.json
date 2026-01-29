@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the pilgrim registration record."
+          "description": "Unique identifier for the registration."
         },
         "fullName": {
           "type": "string",
@@ -16,7 +16,7 @@
         },
         "mobileNumber": {
           "type": "string",
-          "description": "Mobile number of the pilgrim (for WhatsApp/Telegram communication)."
+          "description": "Mobile number of the pilgrim (for WhatsApp/Telegram)."
         },
         "numberOfPeople": {
           "type": "number",
@@ -24,20 +24,25 @@
         },
         "date": {
           "type": "string",
-          "description": "Date for the Ghat visit.",
-          "format": "date-time"
+          "description": "Date of the planned visit.",
+          "format": "date"
         },
         "ghatId": {
           "type": "string",
-          "description": "Reference to Ghat. (Relationship: Ghat 1:N PilgrimRegistration)"
+          "description": "Reference to the Ghat entity. (Relationship: Ghat 1:N PilgrimRegistration)"
         },
-        "uniqueId": {
+        "timeSlot": {
+          "type": "string",
+          "description": "The time slot selected for the visit (e.g., 6 AM - 9 AM)."
+        },
+        "confirmationCode": {
           "type": "string",
           "description": "Unique confirmation code generated for the registration (KM-27-[GhatShortName]-[4RandomChars])."
         },
-        "slotTime": {
+        "registrationTimestamp": {
           "type": "string",
-          "description": "The time slot for which the pilgrim has registered."
+          "description": "Timestamp of when the registration was recorded.",
+          "format": "date-time"
         }
       },
       "required": [
@@ -47,8 +52,9 @@
         "numberOfPeople",
         "date",
         "ghatId",
-        "uniqueId",
-        "slotTime"
+        "timeSlot",
+        "confirmationCode",
+        "registrationTimestamp"
       ]
     },
     "Ghat": {
@@ -59,7 +65,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Ghat location."
+          "description": "Unique identifier for the Ghat."
         },
         "name": {
           "type": "string",
@@ -71,7 +77,7 @@
         },
         "timeSlots": {
           "type": "array",
-          "description": "Array of available time slots at the Ghat.",
+          "description": "Array of available time slots for the Ghat.",
           "items": {
             "type": "string"
           }
@@ -79,6 +85,10 @@
         "maxCapacity": {
           "type": "number",
           "description": "Maximum capacity for each time slot at the Ghat."
+        },
+        "currentCapacity": {
+          "type": "number",
+          "description": "Current number of registered pilgrims for each time slot."
         }
       },
       "required": [
@@ -86,19 +96,35 @@
         "name",
         "shortName",
         "timeSlots",
-        "maxCapacity"
+        "maxCapacity",
+        "currentCapacity"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "phone"
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/registrations/{registrationId}",
+        "definition": {
+          "entityName": "PilgrimRegistration",
+          "schema": {
+            "$ref": "#/backend/entities/PilgrimRegistration"
+          },
+          "description": "Stores pilgrim registration information. Requires `registrationId` as a document ID.",
+          "params": [
+            {
+              "name": "registrationId",
+              "description": "The unique ID of the registration document."
+            }
+          ]
+        }
+      },
       {
         "path": "/ghats/{ghatId}",
         "definition": {
@@ -106,32 +132,16 @@
           "schema": {
             "$ref": "#/backend/entities/Ghat"
           },
-          "description": "Stores details about each Ghat, including its name, time slots, and maximum capacity. All users can read ghat information.",
+          "description": "Stores information about each Ghat, including its name, time slots, and capacity.",
           "params": [
             {
               "name": "ghatId",
-              "description": "Unique identifier for the Ghat."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/pilgrim_registrations/{registrationId}",
-        "definition": {
-          "entityName": "PilgrimRegistration",
-          "schema": {
-            "$ref": "#/backend/entities/PilgrimRegistration"
-          },
-          "description": "Stores pilgrim registration data. The `ghatId` field enables efficient querying of registrations for specific Ghats. Since the application uses anonymous auth, all authenticated users can create a PilgrimRegistration.",
-          "params": [
-            {
-              "name": "registrationId",
-              "description": "Unique identifier for the pilgrim registration."
+              "description": "The unique ID of the Ghat document."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to optimize for security, scalability, and real-time updates while adhering to the principle of Authorization Independence. This is achieved by prioritizing path-based ownership and avoiding complex hierarchical authorization dependencies (`get()` calls in security rules). The structure uses Structural Segregation to ensure all documents in a collection share the same security requirements. The use of explicit entity naming and descriptions enhances debuggability.\n\nTo avoid the 'auth/operation-not-allowed' error, ensure Phone Auth is enabled in the Firebase Console for the project. This error indicates that the app is trying to use a feature that is not enabled for the project.\n\nThe structure is designed to support QAPs (Rules are not Filters) by avoiding `get()` calls in the security rules and by ensuring that list operations can be securely performed without filtering based on data content. Private user data is stored under the `/users/{userId}` path. All documents in the collection are secured to the user's ID. Collaborative data, such as `Ghat` information, is stored in a top-level `/ghats` collection, assuming this information is globally accessible. If Ghat information requires restricted access in the future, a membership map can be added to each `Ghat` document and denormalized to related `PilgrimRegistration` documents.\n\nThe `PilgrimRegistration` data is stored in a top-level `/pilgrim_registrations` collection. This allows for direct querying and avoids unnecessary nesting.  Since there is a `1:N` relationship between `Ghat` and `PilgrimRegistration`, the `ghatId` is included in the `PilgrimRegistration` document. This way, the application can easily query registrations for a specific `Ghat` while maintaining authorization independence.\n"
+    "reasoning": "The Firestore structure is designed to ensure security, scalability, and ease of debugging, adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. The core idea is to separate different types of data into distinct collections with specific security rules, thereby simplifying the rule definitions and preventing unintended data access.\n\n1.  **Pilgrim Registrations:** Pilgrim registration data is stored in a collection named `registrations`. This collection stores each pilgrim's information, including personal details, ghat preference, time slot, and a unique confirmation code. Since there is no user authentication and all registrations can be considered to have the same level of authorization, all registrations are added to one single collection and will require no `get()` calls for security rules.\n\n2.  **Ghat Information:** Ghat details, including time slots and capacities, are stored in the `ghats` collection.  This information is mostly public and used to display the real-time status of each ghat.  Given the application needs no write access for pilgrims, the data has no need for authorization.\n\nThis structure achieves Authorization Independence by avoiding hierarchical dependencies.  All security rules can be implemented without requiring `get()` calls to parent documents, ensuring atomic operations and ease of debugging.  QAPs are supported by segregating data based on access requirements. The structure also enables secure list operations, because there is no parent document required to validate list access."
   }
 }

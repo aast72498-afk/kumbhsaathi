@@ -1,31 +1,45 @@
 /**
- * This ruleset enforces a security model for a pilgrim registration system.
- *
  * Core Philosophy:
- * The security model is designed to be simple and secure. It allows public, read-only access to foundational data (like Ghat locations) while enabling any authenticated user (including those signed in anonymously) to create their own registration. Crucially, once a registration is created, it cannot be read, updated, or deleted from the client-side to protect user privacy and data integrity.
+ * This ruleset implements a "public kiosk" or "drop-box" security model. The primary
+ * goal is to allow any user (including anonymous or temporary phone-authenticated users)
+ * to submit a registration, while making the submitted data completely private and immutable
+ * from the client-side.
  *
  * Data Structure:
  * The data is organized into two distinct, top-level collections:
- * 1. /ghats/{ghatId}: Stores public information about Ghat locations, schedules, and capacity.
- * 2. /pilgrim_registrations/{registrationId}: Stores private registration details for each pilgrim or group.
+ * 1. /ghats/{ghatId}: A public, read-only collection containing information about
+ *    each ghat location, such as available time slots and capacity.
+ * 2. /registrations/{registrationId}: A private, write-once collection. Users can
+ *    add new registration documents, but cannot read, update, or delete any document
+ *    in the collection once it's created, including their own.
  *
  * Key Security Decisions:
- * - Public Read-Only Data: The `/ghats` collection is publicly readable by anyone but cannot be modified by clients. This ensures the integrity of core application data.
- * - Anonymous Write Access: In line with the application's use of anonymous authentication, any user with a valid auth token can create a document in `/pilgrim_registrations`.
- * - No Reads on Private Data: To prevent any possibility of data leakage where one user could see another's registration details (full name, mobile number), all client-side read (`get`, `list`) and modification (`update`, `delete`) operations on `/pilgrim_registrations` are disabled. The application should rely on the client-side state after a successful creation or use a trusted server environment (like Cloud Functions) for any data retrieval needs.
- * - Authentication Providers: The application logic uses Phone and Anonymous authentication. For the system to function correctly, both the "Anonymous" and "Phone" sign-in providers must be enabled in the Firebase Authentication settings in the Firebase Console. The 'auth/operation-not-allowed' error indicates one of these is disabled.
+ * - Ghat Data is Public and Immutable: The `/ghats` collection can be read by anyone
+ *   to populate the application UI. All write operations are disabled to prevent
+ *   client-side tampering. This data should be managed only through the Firebase
+ *   Console or a trusted server-side environment (e.g., Cloud Functions).
  *
- * Denormalization for Authorization:
- * This ruleset intentionally avoids `get()` or `exists()` calls for performance and security. The current model is simple, but if future requirements involve users managing their own registrations, the `PilgrimRegistration` entity MUST be updated to include an `ownerId` field (e.g., `ownerId: request.auth.uid`). This denormalized field would allow for secure rules like `allow read, update, delete: if isOwner(resource.data.ownerId);`.
+ * - Registrations are Write-Once, Read-Never: To protect the personal information
+ *   (name, mobile number) within each registration, the `/registrations` collection
+ *   is completely locked down for all read and modification operations from the client.
+ *   A user must be signed in (even if anonymously) to create a registration, which
+ *   prevents unauthenticated abuse and spam. This design treats the collection as a secure
+ *   "drop-box" where clients can submit data but cannot see or alter the contents.
+ *
+ * - No Data Shape Validation (Prototyping): In line with a rapid prototyping
+ *   philosophy, these rules do not enforce the specific schema of the data being
+ *   written. Authorization (who can do what) is strictly enforced, but the shape
+ *   of the data is flexible to allow for front-end iteration.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for readable, maintainable rules.
+    // Helper functions for readability and re-use.
 
     /**
      * Checks if the user is authenticated.
+     * This function is the basis for preventing unauthenticated writes.
      */
     function isSignedIn() {
       return request.auth != null;
@@ -33,16 +47,17 @@ service cloud.firestore {
 
     /**
      * @description
-     *   Rules for the 'ghats' collection, which contains public information
-     *   about each Ghat location, its time slots, and capacity.
+     *   Rules for the 'ghats' collection. Ghat information is public for all users
+     *   to read, but all write operations are disabled from the client-side to
+     *   ensure data integrity. This data should be managed by administrators.
      * @path
      *   /ghats/{ghatId}
      * @allow
-     *   (get) Any user, signed in or not, can read the details of a Ghat.
+     *   (get) An unauthenticated user can read the details of a specific ghat.
      * @deny
-     *   (create) No user can create, update, or delete a Ghat from the client.
+     *   (create) An authenticated user cannot create a new ghat document.
      * @principle
-     *   Protects core application data by making it read-only for all clients.
+     *   Public read access for application data with locked-down writes.
      */
     match /ghats/{ghatId} {
       allow get: if true;
@@ -54,28 +69,27 @@ service cloud.firestore {
 
     /**
      * @description
-     *   Rules for the 'pilgrim_registrations' collection. Allows any authenticated user
-     *   to create a registration but denies all subsequent reads and modifications to
-     *   ensure the privacy of all users' registration data.
+     *   Rules for the 'registrations' collection. This collection acts as a secure
+     *   "drop-box". Any authenticated user can create a new registration, but no
+     *   client can read, update, or delete any registration data. This protects
+     *   user privacy (e.g., mobile numbers) and makes bookings immutable.
      * @path
-     *   /pilgrim_registrations/{registrationId}
+     *   /registrations/{registrationId}
      * @allow
-     *   (create) An anonymously signed-in user can submit a new registration.
+     *   (create) An authenticated user can create a new registration document.
      * @deny
-     *   (get) A user cannot read their own or anyone else's registration details.
+     *   (get) An authenticated user cannot read any registration, including their own.
      * @deny
-     *   (list) A user cannot list all registrations, preventing a major data leak.
+     *   (list) No user can list the registrations, preventing data scraping.
      * @deny
      *   (update) No user can modify a registration after it has been created.
      * @principle
-     *   Enforces a write-once policy for authenticated users. Disables reads to protect
-     *   sensitive user information like names and mobile numbers, which is critical
-     *   in a schema that does not have a per-document ownership field.
+     *   Enforces a write-once, read-never policy for sensitive user-submitted data.
      */
-    match /pilgrim_registrations/{registrationId} {
+    match /registrations/{registrationId} {
+      allow create: if isSignedIn();
       allow get: if false;
       allow list: if false;
-      allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
