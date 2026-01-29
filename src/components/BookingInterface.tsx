@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -48,6 +48,16 @@ export default function BookingInterface() {
   const firestore = useFirestore();
   const ghatsCollection = useMemo(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
   const { data: ghats, loading: ghatsLoading, error: ghatsError } = useCollection<Ghat>(ghatsCollection);
+
+  const totalPilgrims = useMemo(() => {
+    if (!ghats) return 0;
+    return ghats.reduce((total, ghat) => {
+        return total + ghat.timeSlots.reduce((ghatTotal, slot) => {
+            return ghatTotal + slot.currentRegistrations;
+        }, 0);
+    }, 0);
+  }, [ghats]);
+
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -118,12 +128,12 @@ export default function BookingInterface() {
 
 
   if (ghatsLoading) {
-    return <div className="text-center"><Loader2 className="h-8 w-8 animate-spin" /> <p>Loading Live Data...</p></div>
+    return <div className="text-center p-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /> <p className='mt-2'>Loading Live Data...</p></div>
   }
   
   if (ghatsError) {
       return (
-        <Alert variant="destructive" className='max-w-lg'>
+        <Alert variant="destructive" className='max-w-lg mx-auto'>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error Loading Data</AlertTitle>
             <AlertDescription>Could not load live ghat availability. Please check your internet connection and refresh the page.</AlertDescription>
@@ -133,17 +143,23 @@ export default function BookingInterface() {
 
   return (
     <Card className="w-full max-w-4xl shadow-2xl rounded-2xl overflow-hidden">
-        <div className={cn("grid grid-cols-1 md:grid-cols-2 transition-all duration-500", successData && 'md:grid-cols-3')}>
-            <div className={cn("p-6 sm:p-8 col-span-1", successData ? 'md:col-span-2' : 'md:col-span-2')}>
-                <div className='flex justify-between items-start mb-6'>
+        <div className={cn("grid grid-cols-1", successData ? 'md:grid-cols-3' : 'md:grid-cols-1')}>
+            <div className={cn("p-6 sm:p-8 col-span-1", successData ? 'md:col-span-2' : 'md:col-span-1')}>
+                 <div className='flex justify-between items-start mb-6 -mt-2'>
                     <div>
                         <h1 className="font-headline text-3xl font-bold text-gray-800">Safe Ghat Slot Booking</h1>
                         <p className="text-muted-foreground mt-1">Book your slot for a safe and divine experience.</p>
                     </div>
-                    { (selectedGhat || selectedSlot || form.formState.isDirty) && !successData &&
-                       <Button variant="ghost" size="sm" onClick={resetFlow}>Reset</Button>
-                    }
+                     <div className="text-right">
+                        <p className="text-sm font-bold text-gray-600 flex items-center gap-2 justify-end"><Users className="h-4 w-4" /> Total Registered</p>
+                        <p className="text-3xl font-bold text-primary">{ghatsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalPilgrims}</p>
+                    </div>
                 </div>
+
+
+                { (selectedGhat || selectedSlot || form.formState.isDirty) && !successData &&
+                    <Button variant="ghost" size="sm" onClick={resetFlow} className="absolute top-4 right-4">Reset</Button>
+                }
 
                 {/* Step 1: Date */}
                 <div className='space-y-4 mb-6'>
@@ -166,7 +182,7 @@ export default function BookingInterface() {
                             mode="single"
                             selected={selectedDate}
                             onSelect={setSelectedDate}
-                            disabled={(date) => date < new Date() || date > addDays(new Date(), 60)}
+                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) || date > addDays(new Date(), 60)}
                             initialFocus
                           />
                         </PopoverContent>
