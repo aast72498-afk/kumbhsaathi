@@ -63,7 +63,7 @@ export default function EmergencyFab() {
     getGhatsForDropdown().then(setGhatOptions);
   }, []);
   
-  const mpForm = useForm<MissingPersonFormValues>({ resolver: zodResolver(missingPersonSchema) });
+  const mpForm = useForm<MissingPersonFormValues>({ resolver: zodResolver(missingPersonSchema), defaultValues: { missingPersonName: '', missingPersonMobile: '', reporterContact: '', lastSeenGhat: '', description: '' } });
   const heForm = useForm<HealthEmergencyFormValues>({ resolver: zodResolver(healthEmergencySchema) });
 
   const onMissingPersonSubmit = async (data: MissingPersonFormValues) => {
@@ -145,6 +145,9 @@ export default function EmergencyFab() {
             <form onSubmit={mpForm.handleSubmit(onMissingPersonSubmit)} className="space-y-4">
               <FormField control={mpForm.control} name="missingPersonName" render={({ field }) => (
                 <FormItem><Label>Missing Person's Name</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={mpForm.control} name="missingPersonMobile" render={({ field }) => (
+                <FormItem><Label>Missing Person's Mobile No. (Optional)</Label><FormControl><Input placeholder="10-digit mobile if available" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={mpForm.control} name="reporterContact" render={({ field }) => (
                 <FormItem><Label>Your Contact Number</Label><FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl><FormMessage /></FormItem>

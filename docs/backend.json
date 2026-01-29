@@ -62,7 +62,7 @@
         "status": { "type": "string", "enum": ["Pending", "Under Investigation", "Found"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["caseId", "reporterContact", "lastSeenGhat", "description", "status", "createdAt"]
+      "required": ["caseId", "missingPersonName", "reporterContact", "lastSeenGhat", "description", "status", "createdAt"]
     },
     "HealthEmergencyAlert": {
       "title": "Health Emergency Alert",

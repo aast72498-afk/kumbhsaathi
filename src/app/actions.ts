@@ -179,7 +179,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
 export async function reportMissingPerson(data: MissingPersonReportPayload) {
     const { firestore } = getFirebaseServer();
     
-    if (!data.reporterContact || !data.lastSeenGhat || !data.description) {
+    if (!data.missingPersonName || !data.reporterContact || !data.lastSeenGhat || !data.description) {
         return { success: false, error: "Missing required fields for missing person report." };
     }
 
