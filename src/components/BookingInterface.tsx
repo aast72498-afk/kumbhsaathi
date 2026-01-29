@@ -55,7 +55,7 @@ declare global {
 
 // --- Main Booking Component ---
 export default function BookingInterface() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedGhat, setSelectedGhat] = useState<Ghat | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   
@@ -93,6 +93,11 @@ export default function BookingInterface() {
     resolver: zodResolver(bookingSchema),
     defaultValues: { fullName: "", mobileNumber: "", numberOfPeople: 1 },
   });
+
+  useEffect(() => {
+    // Set the initial date only on the client side to avoid hydration mismatches
+    setSelectedDate(new Date());
+  }, []);
 
   useEffect(() => {
     if (auth && !ghatsLoading && !window.recaptchaVerifier) {
