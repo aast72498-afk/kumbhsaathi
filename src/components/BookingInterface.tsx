@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,7 +8,7 @@ import { collection } from 'firebase/firestore';
 import { format, addDays } from 'date-fns';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import Confetti from 'react-confetti';
+import dynamic from 'next/dynamic';
 
 import { useCollection, useFirestore } from '@/firebase';
 import { registerPilgrim } from '@/app/actions';
@@ -33,6 +33,8 @@ const bookingSchema = z.object({
 });
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
+const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
+
 
 // --- Main Booking Component ---
 export default function BookingInterface() {
@@ -43,11 +45,6 @@ export default function BookingInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ id: string; ghatName: string; timeSlot: string; date: Date } | null>(null);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const { toast } = useToast();
 
@@ -306,7 +303,7 @@ export default function BookingInterface() {
                   exit={{ opacity: 0, x: 100 }}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                 >
-                    {isClient && <Confetti recycle={false} numberOfPieces={500} tweenDuration={10000} />}
+                    <Confetti recycle={false} numberOfPieces={500} tweenDuration={10000} />
                     <div className='text-center'>
                         <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                         <h2 className="font-headline text-2xl font-bold text-gray-800">Booking Confirmed!</h2>
