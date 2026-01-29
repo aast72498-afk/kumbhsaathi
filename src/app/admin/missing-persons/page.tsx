@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { updateMissingPersonStatus, broadcastMissingPersonAlert } from '@/app/actions';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,7 +34,7 @@ const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: stri
 
 export default function MissingPersonsPage() {
     const firestore = useFirestore();
-    const reportsQuery = useMemo(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc')) : null, [firestore]);
+    const reportsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: reports, loading: reportsLoading } = useCollection<ReportWithId>(reportsQuery);
     
     const [selectedReport, setSelectedReport] = useState<ReportWithId | null>(null);

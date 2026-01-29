@@ -12,7 +12,7 @@ import QRCode from 'react-qr-code';
 import html2canvas from 'html2canvas';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 
-import { useCollection, useFirestore, useAuth } from '@/firebase';
+import { useCollection, useFirestore, useAuth, useMemoFirebase } from '@/firebase';
 import { registerPilgrim } from '@/app/actions';
 import type { Ghat, TimeSlot, RegistrationPayload } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -76,7 +76,7 @@ export default function BookingInterface() {
 
   // --- Firestore Data Fetching ---
   const firestore = useFirestore();
-  const ghatsCollection = useMemo(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
+  const ghatsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
   const { data: ghats, loading: ghatsLoading, error: ghatsError } = useCollection<Ghat>(ghatsCollection);
 
   const totalPilgrims = useMemo(() => {

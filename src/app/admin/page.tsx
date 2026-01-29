@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { MissingPersonReport, HealthEmergencyAlert } from '@/lib/types';
 
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,8 @@ type CombinedAlert = (
 export default function AdminDashboard() {
   const firestore = useFirestore();
 
-  const missingPersonsQuery = useMemo(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
-  const healthAlertsQuery = useMemo(() => firestore ? query(collection(firestore, 'emergency_alerts'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
+  const missingPersonsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
+  const healthAlertsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'emergency_alerts'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
   
   const { data: missingPersons, loading: mpLoading } = useCollection<MissingPersonReport & { id: string }>(missingPersonsQuery);
   const { data: healthAlerts, loading: haLoading } = useCollection<HealthEmergencyAlert & { id: string }>(healthAlertsQuery);

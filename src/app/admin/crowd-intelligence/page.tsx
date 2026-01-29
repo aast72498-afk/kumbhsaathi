@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection } from 'firebase/firestore';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Ghat } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Loader2, Users } from 'lucide-react';
@@ -106,7 +106,7 @@ const HeatmapBlock = ({ location }: { location: HeatmapLocation }) => {
 
 export default function CrowdIntelligencePage() {
     const firestore = useFirestore();
-    const ghatsCollection = useMemo(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
+    const ghatsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
     const { data: ghats, loading: ghatsLoading, error: ghatsError } = useCollection<Ghat>(ghatsCollection);
     
     // Using state to make data feel "live"
