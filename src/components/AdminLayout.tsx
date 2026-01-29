@@ -86,9 +86,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     <Link href="/"><BookMarked />Ghat Booking</Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Link href="#"><FileText />System Logs</Link>
+                             <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={pathname === '/admin/system-logs'}>
+                                    <Link href="/admin/system-logs"><FileText />System Logs</Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
