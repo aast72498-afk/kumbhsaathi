@@ -21,15 +21,32 @@ import {
     Triangle,
     Clock,
     LogOut,
+    Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from './ui/button';
 import React, { useState, useEffect } from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const router = useRouter();
     const pathname = usePathname();
+    const [isVerified, setIsVerified] = useState(false);
     const [currentTime, setCurrentTime] = useState('');
+
+    useEffect(() => {
+        try {
+            const isAuthenticated = sessionStorage.getItem('isAdminAuthenticated') === 'true';
+            if (!isAuthenticated) {
+                router.replace('/login');
+            } else {
+                setIsVerified(true);
+            }
+        } catch (e) {
+            // sessionStorage is not available
+            router.replace('/login');
+        }
+    }, [router]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -44,6 +61,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return () => clearInterval(timer);
     }, []);
 
+
+    if (!isVerified) {
+        return (
+            <div className="dark bg-background text-foreground min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="dark bg-background text-foreground min-h-screen">
