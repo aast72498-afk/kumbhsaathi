@@ -77,8 +77,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Link href="#"><Siren />Emergency Dispatch</Link>
+                                <SidebarMenuButton asChild isActive={pathname === '/admin/emergency-dispatch'}>
+                                    <Link href="/admin/emergency-dispatch"><Siren />Emergency Dispatch</Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
