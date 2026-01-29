@@ -1,173 +1,206 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore } from '@/firebase';
+import { updateMissingPersonStatus } from '@/app/actions';
+import Image from 'next/image';
+import { formatDistanceToNow } from 'date-fns';
+
+import type { MissingPersonReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Upload, FileText, UserCheck, Timer, Shield, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loader2, X, UserCircle, Phone, MapPin, Milestone, MessageSquare, Image as ImageIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+type ReportWithId = MissingPersonReport & { id: string };
+
+const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | null }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-start gap-3">
+            <div className="text-muted-foreground mt-1">{icon}</div>
+            <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="font-medium text-foreground">{value}</p>
+            </div>
+        </div>
+    );
+};
 
 export default function MissingPersonsPage() {
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedDescription, setGeneratedDescription] = useState("");
+    const firestore = useFirestore();
+    const reportsQuery = useMemo(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc')) : null, [firestore]);
+    const { data: reports, loading: reportsLoading } = useCollection<ReportWithId>(reportsQuery);
+    
+    const [selectedReport, setSelectedReport] = useState<ReportWithId | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isClient, setIsClient] = useState(false);
+    
+    const { toast } = useToast();
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    useEffect(() => {
+        if (reports && reports.length > 0 && !selectedReport) {
+            setSelectedReport(reports[0]);
+        }
+    }, [reports, selectedReport]);
 
-    const handleGenerateDescription = () => {
-        setIsGenerating(true);
-        // Simulate AI generation
-        setTimeout(() => {
-            setGeneratedDescription("Male child, approximately 5 years old, last seen wearing a red t-shirt and blue shorts. Average build, fair complexion.");
-            setIsGenerating(false);
-        }, 1500);
-    }
+    const handleStatusUpdate = async (status: 'Under Investigation' | 'Found') => {
+        if (!selectedReport) return;
+        setIsUpdatingStatus(true);
+        const result = await updateMissingPersonStatus(selectedReport.id, status);
+        if (result.success) {
+            toast({ title: "Status Updated Successfully" });
+        } else {
+            toast({ variant: 'destructive', title: "Update Failed", description: result.error });
+        }
+        setIsUpdatingStatus(false);
+    };
+
+    const getStatusVariant = (status: ReportWithId['status']) => {
+        switch (status) {
+            case 'Found': return 'default';
+            case 'Under Investigation': return 'secondary';
+            case 'Pending': return 'destructive';
+            default: return 'outline';
+        }
+    };
     
     if (!isClient) {
         return (
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-1 h-[600px] flex items-center justify-center">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[80vh]">
+                <Card className="md:col-span-1 h-full flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </Card>
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="h-[250px] flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </Card>
-                    <Card className="h-[334px] flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </Card>
-                </div>
-          </div>
-        );
+                <Card className="md:col-span-2 h-full flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </Card>
+            </div>
+        )
     }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Left Panel: Case Creation */}
-      <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle>Create New Case</CardTitle>
-          <CardDescription>Enter details to report a missing person.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="space-y-2">
-                <Label htmlFor="photo-upload">Reference Photo</Label>
-                <div className="flex items-center justify-center w-full">
-                    <label htmlFor="photo-upload" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/50">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p className="text-xs text-muted-foreground">PNG, JPG (MAX. 5MB)</p>
-                        </div>
-                        <Input id="photo-upload" type="file" className="hidden" />
-                    </label>
-                </div> 
-            </div>
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-10rem)]">
+            {/* Left Panel: Cases List */}
+            <Card className="md:col-span-1 flex flex-col">
+                <CardHeader>
+                    <CardTitle>Live Cases</CardTitle>
+                    <CardDescription>All active missing person reports.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 flex-grow">
+                    <ScrollArea className="h-full">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-card z-10">
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Time</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reportsLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="h-24 text-center">
+                                            <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!reportsLoading && reports?.map((report) => (
+                                    <TableRow
+                                        key={report.id}
+                                        onClick={() => setSelectedReport(report)}
+                                        className="cursor-pointer"
+                                        data-state={selectedReport?.id === report.id ? 'selected' : ''}
+                                    >
+                                        <TableCell className="font-medium">{report.missingPersonName}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusVariant(report.status)}>{report.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">
+                                            {report.createdAt ? formatDistanceToNow(report.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                 {!reportsLoading && reports?.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="h-24 text-center">No reports found.</TableCell>
+                                    </TableRow>
+                                 )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="last-seen">Last Seen Location</Label>
-            <Input id="last-seen" placeholder="e.g., Near Ram Kund entrance" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="age-group">Age Group</Label>
-             <Select>
-                <SelectTrigger id="age-group">
-                    <SelectValue placeholder="Select age group" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="child">Child (0-12)</SelectItem>
-                    <SelectItem value="teen">Teenager (13-17)</SelectItem>
-                    <SelectItem value="adult">Adult (18-60)</SelectItem>
-                    <SelectItem value="senior">Senior (60+)</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="clothing">Clothing Description</Label>
-            <Textarea id="clothing" placeholder="e.g., Red t-shirt, blue jeans, white cap" />
-          </div>
-          
-          <Button onClick={handleGenerateDescription} disabled={isGenerating} className="w-full">
-            {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-            Generate AI Description
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Center & Right Panels */}
-      <div className="lg:col-span-2 space-y-6">
-        {/* Center Panel: AI Generated Description */}
-        <Card>
-            <CardHeader>
-                <CardTitle>AI-Generated Report</CardTitle>
-                <div className="flex items-center gap-4 pt-2">
-                     <Badge variant="secondary" className="border-green-500/50 text-green-400">
-                        <Shield className="w-3 h-3 mr-1.5" />
-                        No Facial Data Stored
-                    </Badge>
-                    <Badge variant="secondary" className="border-amber-500/50 text-amber-400">
-                        <Timer className="w-3 h-3 mr-1.5" />
-                        Auto-deletes in 48 hours
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {generatedDescription ? (
-                     <Alert variant="default" className="bg-background">
-                        <FileText className="h-4 w-4" />
-                        <AlertTitle>Generated Description</AlertTitle>
-                        <AlertDescription className="text-lg text-foreground">
-                          {generatedDescription}
-                        </AlertDescription>
-                    </Alert>
+            {/* Right Panel: Case Details */}
+            <Card className="md:col-span-2 flex flex-col">
+                {selectedReport ? (
+                    <>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Case Details: {selectedReport.caseId}</CardTitle>
+                                    <CardDescription>Reported by contact: {selectedReport.reporterContact}</CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                     <Button size="sm" variant="outline" onClick={() => handleStatusUpdate('Under Investigation')} disabled={isUpdatingStatus || selectedReport.status === 'Under Investigation'}>
+                                        Investigating
+                                    </Button>
+                                    <Button size="sm" onClick={() => handleStatusUpdate('Found')} disabled={isUpdatingStatus || selectedReport.status === 'Found'}>
+                                        Mark as Found
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-grow overflow-y-auto">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    {selectedReport.photoUrl ? (
+                                        <Image
+                                            src={selectedReport.photoUrl}
+                                            alt={`Photo of ${selectedReport.missingPersonName}`}
+                                            width={500}
+                                            height={500}
+                                            className="rounded-lg border object-cover aspect-square bg-muted"
+                                        />
+                                    ) : (
+                                        <div className="aspect-square w-full bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground">
+                                            <ImageIcon className="h-16 w-16" />
+                                            <p>No photo provided</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-6">
+                                    <DetailItem icon={<UserCircle className="h-5 w-5"/>} label="Missing Person" value={selectedReport.missingPersonName} />
+                                    <DetailItem icon={<Phone className="h-5 w-5"/>} label="Missing Person's Mobile" value={selectedReport.missingPersonMobile} />
+                                    <DetailItem icon={<MapPin className="h-5 w-5"/>} label="Last Seen Ghat" value={selectedReport.lastSeenGhat} />
+                                    <DetailItem icon={<Milestone className="h-5 w-5"/>} label="Specific Location" value={selectedReport.detailedLocation} />
+                                    <DetailItem icon={<MessageSquare className="h-5 w-5"/>} label="Description" value={selectedReport.description} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </>
                 ) : (
-                    <div className="flex items-center justify-center h-24 text-sm text-center text-muted-foreground">
-                        <p>Description will be generated here after you submit the case details.</p>
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        {reportsLoading ? (
+                             <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                           <>
+                            <UserCircle className="h-16 w-16" />
+                            <p className="mt-4">Select a case to view details</p>
+                           </>
+                        )}
                     </div>
                 )}
-            </CardContent>
-        </Card>
-        
-        {/* Right Panel: Potential Matches */}
-        <Card>
-            <CardHeader>
-                <CardTitle>Potential Matches</CardTitle>
-                <CardDescription>Review cases reported by other units and the public.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <Alert className="bg-muted/30">
-                     <UserCheck className="h-4 w-4" />
-                    <div className="flex items-center justify-between w-full">
-                        <div>
-                             <AlertTitle>Case ID: MP-83421</AlertTitle>
-                             <AlertDescription>Status: <span className="font-semibold text-green-400">Found nearby</span> (Sector 5)</AlertDescription>
-                        </div>
-                        <Button variant="outline" size="sm">View Details</Button>
-                    </div>
-                </Alert>
-                 <Alert className="bg-muted/30">
-                    <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />
-                    <div className="flex items-center justify-between w-full">
-                        <div>
-                             <AlertTitle>Case ID: MP-83419</AlertTitle>
-                             <AlertDescription>Status: <span className="font-semibold text-yellow-400">Under Verification</span></AlertDescription>
-                        </div>
-                        <Button variant="outline" size="sm">View Details</Button>
-                    </div>
-                </Alert>
-                <div className="text-center text-muted-foreground text-sm pt-4">No other potential matches found.</div>
-            </CardContent>
-        </Card>
-      </div>
-
-    </div>
-  );
+            </Card>
+        </div>
+    );
 }

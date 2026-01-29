@@ -11,6 +11,7 @@ import {
     query,
     limit,
     where,
+    updateDoc,
     DocumentReference,
     DocumentData
 } from 'firebase/firestore';
@@ -179,7 +180,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
 export async function reportMissingPerson(data: MissingPersonReportPayload) {
     const { firestore } = getFirebaseServer();
     
-    if (!data.missingPersonName || !data.reporterContact || !data.lastSeenGhat || !data.description) {
+    if (!data.missingPersonName || !data.reporterContact || !data.lastSeenGhat || !data.description || !data.detailedLocation) {
         return { success: false, error: "Missing required fields for missing person report." };
     }
 
@@ -233,5 +234,20 @@ export async function reportHealthEmergency(data: HealthEmergencyPayload) {
     } catch (e: any) {
         console.error("Failed to report health emergency:", e);
         return { success: false, error: e.message || "An error occurred while reporting the emergency." };
+    }
+}
+
+export async function updateMissingPersonStatus(reportId: string, status: 'Under Investigation' | 'Found') {
+    const { firestore } = getFirebaseServer();
+    if (!reportId || !status) {
+        return { success: false, error: "Missing required fields." };
+    }
+    try {
+        const reportRef = doc(firestore, "missing_persons", reportId);
+        await updateDoc(reportRef, { status });
+        return { success: true, message: "Status updated successfully." };
+    } catch (e: any) {
+        console.error("Failed to update status:", e);
+        return { success: false, error: e.message || "An error occurred while updating status." };
     }
 }

@@ -28,7 +28,9 @@ export type MissingPersonReportPayload = {
     missingPersonMobile?: string;
     reporterContact: string;
     lastSeenGhat: string;
+    detailedLocation: string;
     description: string;
+    photoUrl?: string;
 };
 
 export type MissingPersonReport = MissingPersonReportPayload & {

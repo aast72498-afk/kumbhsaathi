@@ -58,11 +58,13 @@
         "missingPersonMobile": { "type": "string" },
         "reporterContact": { "type": "string" },
         "lastSeenGhat": { "type": "string" },
+        "detailedLocation": { "type": "string", "description": "More specific details about the last seen location." },
+        "photoUrl": { "type": "string", "description": "A data URL of the missing person's photo." },
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["Pending", "Under Investigation", "Found"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["caseId", "missingPersonName", "reporterContact", "lastSeenGhat", "description", "status", "createdAt"]
+      "required": ["caseId", "missingPersonName", "reporterContact", "lastSeenGhat", "detailedLocation", "description", "status", "createdAt"]
     },
     "HealthEmergencyAlert": {
       "title": "Health Emergency Alert",

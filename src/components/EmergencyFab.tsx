@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Siren, User, Hospital, Loader2, CheckCircle } from 'lucide-react';
 import { getGhatsForDropdown } from '@/lib/data';
 import { reportMissingPerson, reportHealthEmergency } from '@/app/actions';
+import { AnimatePresence } from 'framer-motion';
 
 // Schemas
 const missingPersonSchema = z.object({
@@ -39,7 +40,9 @@ const missingPersonSchema = z.object({
   missingPersonMobile: z.string().optional(),
   reporterContact: z.string().regex(/^\d{10}$/, 'Please enter a valid 10-digit mobile number.'),
   lastSeenGhat: z.string().min(1, 'Please select the last seen location.'),
+  detailedLocation: z.string().min(3, 'Please provide more details on the location.'),
   description: z.string().min(10, 'Please provide a brief description.'),
+  photo: z.any().optional(),
 });
 
 const healthEmergencySchema = z.object({
@@ -63,11 +66,53 @@ export default function EmergencyFab() {
     getGhatsForDropdown().then(setGhatOptions);
   }, []);
   
-  const mpForm = useForm<MissingPersonFormValues>({ resolver: zodResolver(missingPersonSchema), defaultValues: { missingPersonName: '', missingPersonMobile: '', reporterContact: '', lastSeenGhat: '', description: '' } });
+  const mpForm = useForm<MissingPersonFormValues>({ resolver: zodResolver(missingPersonSchema), defaultValues: { missingPersonName: '', missingPersonMobile: '', reporterContact: '', lastSeenGhat: '', detailedLocation: '', description: '' } });
   const heForm = useForm<HealthEmergencyFormValues>({ resolver: zodResolver(healthEmergencySchema) });
+  
+  const selectedGhat = mpForm.watch('lastSeenGhat');
 
   const onMissingPersonSubmit = async (data: MissingPersonFormValues) => {
-    const result = await reportMissingPerson(data);
+    let photoUrl = '';
+    if (data.photo && data.photo.length > 0) {
+        const file = data.photo[0];
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({ variant: 'destructive', title: 'Photo is too large', description: 'Please upload an image under 5MB.' });
+            mpForm.setError('photo', { message: 'Photo must be under 5MB.' });
+            return;
+        }
+        if (!file.type.startsWith('image/')) {
+            toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please upload an image file (PNG, JPG).' });
+            mpForm.setError('photo', { message: 'Invalid file type.' });
+            return;
+        }
+        
+        try {
+            photoUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        } catch (error) {
+            console.error("Error converting file to data URL", error);
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not process the uploaded photo.' });
+            return;
+        }
+    }
+
+    // Create a new object for the server action payload
+    const payload = {
+        missingPersonName: data.missingPersonName,
+        missingPersonMobile: data.missingPersonMobile,
+        reporterContact: data.reporterContact,
+        lastSeenGhat: data.lastSeenGhat,
+        detailedLocation: data.detailedLocation,
+        description: data.description,
+        photoUrl: photoUrl || undefined,
+    };
+
+    const result = await reportMissingPerson(payload);
+
     if (result.success) {
       toast({
         title: 'Report Submitted Successfully',
@@ -144,17 +189,26 @@ export default function EmergencyFab() {
           <Form {...mpForm}>
             <form onSubmit={mpForm.handleSubmit(onMissingPersonSubmit)} className="space-y-4">
               <FormField control={mpForm.control} name="missingPersonName" render={({ field }) => (
-                <FormItem><Label>Missing Person's Name</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Missing Person's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={mpForm.control} name="missingPersonMobile" render={({ field }) => (
-                <FormItem><Label>Missing Person's Mobile No. (Optional)</Label><FormControl><Input placeholder="10-digit mobile if available" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Missing Person's Mobile No. (Optional)</FormLabel><FormControl><Input placeholder="10-digit mobile if available" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
+                <FormField control={mpForm.control} name="photo" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Photo of Missing Person (Optional)</FormLabel>
+                        <FormControl>
+                            <Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
               <FormField control={mpForm.control} name="reporterContact" render={({ field }) => (
-                <FormItem><Label>Your Contact Number</Label><FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Your Contact Number</FormLabel><FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={mpForm.control} name="lastSeenGhat" render={({ field }) => (
                  <FormItem>
-                    <Label>Last Seen Location</Label>
+                    <FormLabel>Last Seen Location</FormLabel>
                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a Ghat" /></SelectTrigger></FormControl>
                         <SelectContent>
@@ -164,8 +218,28 @@ export default function EmergencyFab() {
                     <FormMessage />
                 </FormItem>
               )} />
+                <AnimatePresence>
+                {selectedGhat && (
+                    <motion.div
+                        key="detailedLocation"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                    >
+                         <FormField control={mpForm.control} name="detailedLocation" render={({ field }) => (
+                            <FormItem className="pt-4">
+                                <FormLabel>Specific Location Details</FormLabel>
+                                <FormControl><Input placeholder="e.g., Near the main steps, by the banyan tree" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </motion.div>
+                )}
+                </AnimatePresence>
               <FormField control={mpForm.control} name="description" render={({ field }) => (
-                <FormItem><Label>Description (Clothing, etc.)</Label><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Description (Clothing, etc.)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <DialogFooter>
                 <Button type="submit" disabled={mpForm.formState.isSubmitting}>
@@ -191,20 +265,20 @@ export default function EmergencyFab() {
             <form onSubmit={heForm.handleSubmit(onHealthEmergencySubmit)} className="space-y-6">
                <FormField control={heForm.control} name="issueType" render={({ field }) => (
                 <FormItem className="space-y-3">
-                    <Label>Type of Issue</Label>
+                    <FormLabel>Type of Issue</FormLabel>
                     <FormControl>
                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
                             <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl><RadioGroupItem value="Fainting" /></FormControl><Label className="font-normal">Fainting / Dizziness</Label>
+                                <FormControl><RadioGroupItem value="Fainting" /></FormControl><FormLabel className="font-normal">Fainting / Dizziness</FormLabel>
                             </FormItem>
                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl><RadioGroupItem value="Breathing Difficulty" /></FormControl><Label className="font-normal">Breathing Difficulty</Label>
+                                <FormControl><RadioGroupItem value="Breathing Difficulty" /></FormControl><FormLabel className="font-normal">Breathing Difficulty</FormLabel>
                             </FormItem>
                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl><RadioGroupItem value="Physical Injury" /></FormControl><Label className="font-normal">Physical Injury</Label>
+                                <FormControl><RadioGroupItem value="Physical Injury" /></FormControl><FormLabel className="font-normal">Physical Injury</FormLabel>
                             </FormItem>
                             <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl><RadioGroupItem value="Other" /></FormControl><Label className="font-normal">Other</Label>
+                                <FormControl><RadioGroupItem value="Other" /></FormControl><FormLabel className="font-normal">Other</FormLabel>
                             </FormItem>
                         </RadioGroup>
                     </FormControl>
@@ -212,7 +286,7 @@ export default function EmergencyFab() {
                 </FormItem>
               )} />
               <FormField control={heForm.control} name="location" render={({ field }) => (
-                <FormItem><Label>Your Current Location (Ghat/Sector)</Label><FormControl><Input placeholder="e.g., Ram Kund, near main steps" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Your Current Location (Ghat/Sector)</FormLabel><FormControl><Input placeholder="e.g., Ram Kund, near main steps" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <DialogFooter>
                 <Button type="submit" disabled={heForm.formState.isSubmitting} className="bg-red-600 hover:bg-red-700">
