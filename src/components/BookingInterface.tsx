@@ -179,7 +179,7 @@ export default function BookingInterface() {
 
                 <AnimatePresence>
                 { (selectedGhat || selectedSlot || form.formState.isDirty) && !successData &&
-                    <motion.div {...motionProps}>
+                    <motion.div key="resetButton" {...motionProps}>
                       <Button variant="ghost" size="sm" onClick={resetFlow} className="absolute top-4 right-4">Reset</Button>
                     </motion.div>
                 }
@@ -232,7 +232,7 @@ export default function BookingInterface() {
                 <AnimatePresence>
                 {/* Step 3: Slot */}
                 {selectedGhat && (
-                    <motion.div {...motionProps} className='space-y-4 mb-8'>
+                    <motion.div key="step3" {...motionProps} className='space-y-4 mb-8'>
                         <h2 className='text-lg font-semibold flex items-center gap-2'><span className='flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-sm'>3</span>Select Time Slot for <span className='text-primary'>{selectedGhat.name}</span></h2>
                         <div className='flex flex-wrap gap-3'>
                             {selectedGhat.timeSlots.map(slot => {
@@ -250,7 +250,7 @@ export default function BookingInterface() {
                 
                 {/* Step 4: Details & Submit */}
                 {selectedSlot && (
-                    <motion.div {...motionProps}>
+                    <motion.div key="step4" {...motionProps}>
                          <h2 className='text-lg font-semibold flex items-center gap-2 mb-4'><span className='flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-sm'>4</span>Confirm Your Details</h2>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -297,6 +297,7 @@ export default function BookingInterface() {
             {/* --- Confirmation Panel --- */}
             {successData && (
                 <motion.div 
+                  key="confirmationPanel"
                   className="p-6 sm:p-8 bg-slate-100/80 col-span-1"
                   initial={{ opacity: 0, x: 100 }}
                   animate={{ opacity: 1, x: 0 }}
