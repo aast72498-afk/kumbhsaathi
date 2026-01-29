@@ -67,8 +67,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Link href="#"><Users />Crowd Intelligence</Link>
+                                <SidebarMenuButton asChild isActive={pathname === '/admin/crowd-intelligence'}>
+                                    <Link href="/admin/crowd-intelligence"><Users />Crowd Intelligence</Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
