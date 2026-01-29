@@ -46,10 +46,15 @@ const missingPersonSchema = z.object({
 });
 
 const healthEmergencySchema = z.object({
+  reporterName: z.string().min(3, "Please enter your name."),
+  reporterContact: z.string().regex(/^\d{10}$/, 'Please enter a valid 10-digit mobile number.'),
+  peopleAffected: z.coerce.number().min(1, 'At least one person must be affected.'),
   issueType: z.string().min(1, 'Please select the type of issue.'),
-  location: z.string().min(3, 'Please provide your current location.'),
+  locationGhat: z.string().min(1, 'Please select the ghat location.'),
+  detailedLocation: z.string().min(3, 'Please provide specific location details.'),
   details: z.string().optional(),
 });
+
 
 type MissingPersonFormValues = z.infer<typeof missingPersonSchema>;
 type HealthEmergencyFormValues = z.infer<typeof healthEmergencySchema>;
@@ -67,9 +72,11 @@ export default function EmergencyFab() {
   }, []);
   
   const mpForm = useForm<MissingPersonFormValues>({ resolver: zodResolver(missingPersonSchema), defaultValues: { missingPersonName: '', missingPersonMobile: '', reporterContact: '', lastSeenGhat: '', detailedLocation: '', description: '' } });
-  const heForm = useForm<HealthEmergencyFormValues>({ resolver: zodResolver(healthEmergencySchema) });
+  const heForm = useForm<HealthEmergencyFormValues>({ resolver: zodResolver(healthEmergencySchema), defaultValues: { reporterName: '', reporterContact: '', peopleAffected: 1, issueType: '', locationGhat: '', detailedLocation: '', details: '' } });
   
-  const selectedGhat = mpForm.watch('lastSeenGhat');
+  const selectedMpGhat = mpForm.watch('lastSeenGhat');
+  const selectedHeGhat = heForm.watch('locationGhat');
+
 
   const onMissingPersonSubmit = async (data: MissingPersonFormValues) => {
     let photoUrl = '';
@@ -219,7 +226,7 @@ export default function EmergencyFab() {
                 </FormItem>
               )} />
                 <AnimatePresence>
-                {selectedGhat && (
+                {selectedMpGhat && (
                     <motion.div
                         key="detailedLocation"
                         initial={{ opacity: 0, height: 0 }}
@@ -258,11 +265,20 @@ export default function EmergencyFab() {
           <DialogHeader>
             <DialogTitle>Report a Medical Emergency</DialogTitle>
             <DialogDescription>
-              Select the issue and confirm your location. A medical team will be dispatched immediately.
+              Fill in the details below. A medical team will be dispatched immediately.
             </DialogDescription>
           </DialogHeader>
            <Form {...heForm}>
-            <form onSubmit={heForm.handleSubmit(onHealthEmergencySubmit)} className="space-y-6">
+            <form onSubmit={heForm.handleSubmit(onHealthEmergencySubmit)} className="space-y-4">
+                <FormField control={heForm.control} name="reporterName" render={({ field }) => (
+                    <FormItem><FormLabel>Your Name</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                 <FormField control={heForm.control} name="reporterContact" render={({ field }) => (
+                    <FormItem><FormLabel>Your Contact Number</FormLabel><FormControl><Input placeholder="10-digit mobile number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                 <FormField control={heForm.control} name="peopleAffected" render={({ field }) => (
+                    <FormItem><FormLabel>Number of People Affected</FormLabel><FormControl><Input type="number" min="1" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
                <FormField control={heForm.control} name="issueType" render={({ field }) => (
                 <FormItem className="space-y-3">
                     <FormLabel>Type of Issue</FormLabel>
@@ -285,8 +301,40 @@ export default function EmergencyFab() {
                     <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={heForm.control} name="location" render={({ field }) => (
-                <FormItem><FormLabel>Your Current Location (Ghat/Sector)</FormLabel><FormControl><Input placeholder="e.g., Ram Kund, near main steps" {...field} /></FormControl><FormMessage /></FormItem>
+              <FormField control={heForm.control} name="locationGhat" render={({ field }) => (
+                 <FormItem>
+                    <FormLabel>Location (Ghat)</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select the nearest Ghat" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {ghatOptions.map(opt => <SelectItem key={opt.value} value={opt.label}>{opt.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+              )} />
+                <AnimatePresence>
+                    {selectedHeGhat && (
+                         <motion.div
+                            key="heDetailedLocation"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                        >
+                            <FormField control={heForm.control} name="detailedLocation" render={({ field }) => (
+                                <FormItem className="pt-4">
+                                    <FormLabel>Specific Location Details</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Near the main steps, by the banyan tree" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+               <FormField control={heForm.control} name="details" render={({ field }) => (
+                <FormItem><FormLabel>Additional Details (Optional)</FormLabel><FormControl><Textarea placeholder="Provide any other relevant information" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <DialogFooter>
                 <Button type="submit" disabled={heForm.formState.isSubmitting} className="bg-red-600 hover:bg-red-700">

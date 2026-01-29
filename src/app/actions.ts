@@ -213,13 +213,18 @@ export async function reportMissingPerson(data: MissingPersonReportPayload) {
 export async function reportHealthEmergency(data: HealthEmergencyPayload) {
     const { firestore } = getFirebaseServer();
 
-    if (!data.issueType || !data.location) {
-        return { success: false, error: "Missing required fields for health emergency report." };
+    const requiredFields: (keyof HealthEmergencyPayload)[] = ['reporterName', 'reporterContact', 'peopleAffected', 'issueType', 'locationGhat', 'detailedLocation'];
+    for (const field of requiredFields) {
+        if (!data[field]) {
+            return { success: false, error: `Missing required field: ${field}` };
+        }
     }
 
     try {
+        const caseId = `HE-${new Date().getFullYear()}-${generateRandomChars(4)}`;
         const alertData = {
             ...data,
+            caseId,
             status: 'Pending',
             createdAt: serverTimestamp()
         };
@@ -228,7 +233,7 @@ export async function reportHealthEmergency(data: HealthEmergencyPayload) {
         
         await sendWebhook({
             type: 'Health Emergency',
-            ...data
+            ...alertData
         });
 
         return { success: true, message: "Health emergency reported. Help is on the way." };

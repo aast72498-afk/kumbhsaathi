@@ -71,13 +71,18 @@
       "description": "Represents a request for medical assistance.",
       "type": "object",
       "properties": {
+        "caseId": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterContact": { "type": "string" },
+        "peopleAffected": { "type": "number" },
         "issueType": { "type": "string" },
-        "location": { "type": "string" },
+        "locationGhat": { "type": "string" },
+        "detailedLocation": { "type": "string" },
         "details": { "type": "string" },
-        "status": { "type": "string", "enum": ["Pending", "Responded"] },
+        "status": { "type": "string", "enum": ["Pending", "On-site", "Responded"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["issueType", "location", "status", "createdAt"]
+      "required": ["caseId", "reporterName", "reporterContact", "peopleAffected", "issueType", "locationGhat", "detailedLocation", "status", "createdAt"]
     }
   },
   "auth": {

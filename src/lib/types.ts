@@ -40,12 +40,17 @@ export type MissingPersonReport = MissingPersonReportPayload & {
 };
 
 export type HealthEmergencyPayload = {
+    reporterName: string;
+    reporterContact: string;
+    peopleAffected: number;
     issueType: string;
-    location: string;
+    locationGhat: string;
+    detailedLocation: string;
     details?: string;
 };
 
 export type HealthEmergencyAlert = HealthEmergencyPayload & {
-    status: 'Pending' | 'Responded';
+    caseId: string;
+    status: 'Pending' | 'Responded' | 'On-site';
     createdAt: any; // Firestore Timestamp
 };
