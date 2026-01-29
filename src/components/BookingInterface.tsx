@@ -49,7 +49,7 @@ type SuccessData = {
 
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
+    recaptchaVerifier?: RecaptchaVerifier;
   }
 }
 
@@ -99,17 +99,6 @@ export default function BookingInterface() {
     setSelectedDate(new Date());
   }, []);
 
-  useEffect(() => {
-    if (auth && !ghatsLoading && !window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        }
-      });
-    }
-  }, [auth, ghatsLoading]);
-
   const handleGhatSelect = (ghat: Ghat) => {
     setSelectedGhat(ghat);
     setSelectedSlot(null); // Reset slot when ghat changes
@@ -153,13 +142,27 @@ export default function BookingInterface() {
         setIsLoading(false);
         return;
     }
-    const appVerifier = window.recaptchaVerifier;
-    const phoneNumber = "+91" + data.mobileNumber;
+
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+    }
+    
     try {
-        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        setConfirmationResult(result);
-        setOtpSent(true);
-        toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
+      const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved. `signInWithPhoneNumber` will resolve.
+        }
+      });
+      window.recaptchaVerifier = appVerifier;
+
+      const phoneNumber = "+91" + data.mobileNumber;
+      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      
+      setConfirmationResult(result);
+      setOtpSent(true);
+      toast({ title: "OTP Sent", description: `An OTP has been sent to ${phoneNumber}.` });
+
     } catch (e: any) {
         setError(`Failed to send OTP: ${e.message}`);
         console.error("OTP Send Error:", e);
@@ -257,9 +260,9 @@ export default function BookingInterface() {
 
   return (
     <Card className="w-full max-w-4xl shadow-2xl rounded-2xl overflow-hidden bg-white/30 backdrop-blur-lg border-white/20">
-        <div id="recaptcha-container"></div>
         <div className={cn("grid grid-cols-1", successData ? 'md:grid-cols-3' : 'md:grid-cols-1')}>
             <div className={cn("p-6 sm:p-8 col-span-1", successData ? 'md:col-span-2' : 'md:col-span-1')}>
+                 <div id="recaptcha-container"></div>
                  <div className='flex justify-between items-start mb-6 -mt-2'>
                     <div>
                         <h1 className="font-headline text-3xl font-bold text-gray-800">Safe Ghat Slot Booking</h1>
