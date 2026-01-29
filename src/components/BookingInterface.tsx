@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection } from 'firebase/firestore';
 import { format, addDays } from 'date-fns';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import QRCode from 'react-qr-code';
+import html2canvas from 'html2canvas';
+
 
 import { useCollection, useFirestore } from '@/firebase';
 import { registerPilgrim } from '@/app/actions';
@@ -21,7 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Loader2, CheckCircle, AlertCircle, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, CheckCircle, AlertCircle, Users, Download, QrCode } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -35,6 +37,15 @@ type BookingFormValues = z.infer<typeof bookingSchema>;
 
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
+// Success data type
+type SuccessData = {
+    id: string;
+    ghatName: string;
+    timeSlot: string;
+    date: Date;
+    fullName: string;
+    numberOfPeople: number;
+}
 
 // --- Main Booking Component ---
 export default function BookingInterface() {
@@ -44,8 +55,9 @@ export default function BookingInterface() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successData, setSuccessData] = useState<{ id: string; ghatName: string; timeSlot: string; date: Date } | null>(null);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
 
+  const ticketRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // --- Firestore Data Fetching ---
@@ -85,6 +97,22 @@ export default function BookingInterface() {
     form.reset();
   }
 
+  // --- Download Ticket Logic ---
+  const handleDownloadTicket = () => {
+    if (ticketRef.current) {
+        html2canvas(ticketRef.current, {
+            useCORS: true,
+            backgroundColor: null, // transparent background for the canvas
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `KumbhSaathi-Ticket-${successData?.id}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+  };
+
+
   // --- Form Submission Logic ---
   async function onSubmit(data: BookingFormValues) {
     if (!selectedDate || !selectedGhat || !selectedSlot) {
@@ -105,7 +133,7 @@ export default function BookingInterface() {
     try {
       const result = await registerPilgrim(payload as RegistrationPayload & {date: Date});
       if (result.success) {
-        setSuccessData(result.data!);
+        setSuccessData(result.data as SuccessData);
       } else {
         setError(result.error || "An unknown error occurred.");
          toast({
@@ -298,7 +326,7 @@ export default function BookingInterface() {
             {successData && (
                 <motion.div 
                   key="confirmationPanel"
-                  className="p-6 sm:p-8 bg-slate-100/80 col-span-1"
+                  className="p-6 sm:p-8 bg-slate-100/80 col-span-1 flex flex-col justify-between"
                   initial={{ opacity: 0, x: 100 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 100 }}
@@ -308,27 +336,38 @@ export default function BookingInterface() {
                     <div className='text-center'>
                         <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                         <h2 className="font-headline text-2xl font-bold text-gray-800">Booking Confirmed!</h2>
-                        <p className="text-muted-foreground mt-1">Scan the QR code at the Ghat entry. A confirmation has been sent to your mobile.</p>
+                        <p className="text-muted-foreground mt-1 mb-6">Your digital ticket is ready. Please download it for entry.</p>
 
-                        <div className='bg-white p-4 rounded-lg my-6 text-center shadow-inner border'>
-                           <Image 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${successData.id}`}
-                                alt="Booking QR Code"
-                                width={150}
-                                height={150}
-                                className='mx-auto rounded-md'
-                           />
-                            <p className="text-lg font-bold font-mono tracking-widest text-primary mt-3">{successData.id}</p>
-                            <p className="text-xs font-medium text-muted-foreground">Your Unique Registration ID</p>
+                        {/* --- Digital Ticket --- */}
+                        <div ref={ticketRef} className='bg-white p-4 rounded-lg text-center shadow-lg border-2 border-accent relative overflow-hidden'>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-7xl font-bold text-gray-200/50 -rotate-45 select-none font-headline">Jai Gange</span>
+                            </div>
+                           <div className="relative z-10">
+                             <div className='flex items-center justify-between mb-3 border-b-2 border-dashed pb-3'>
+                                <h3 className='font-headline text-lg font-bold text-accent'>Kumbh Mela Entry Pass</h3>
+                                <QrCode className="h-6 w-6 text-accent"/>
+                             </div>
+                             <div className='p-2 bg-gray-100 rounded-md inline-block'>
+                                <QRCode value={successData.id} size={128} bgColor="#f3f4f6" fgColor="#111827" />
+                             </div>
+                            <p className="text-lg font-bold font-mono tracking-widest text-primary mt-2">{successData.id}</p>
+                            <div className="text-sm space-y-1 text-left bg-white p-3 rounded-lg mt-4 border">
+                               <p><strong className="font-semibold w-24 inline-block">Name:</strong> {successData.fullName}</p>
+                               <p><strong className="font-semibold w-24 inline-block">Pilgrims:</strong> {successData.numberOfPeople}</p>
+                               <p><strong className="font-semibold w-24 inline-block">Ghat:</strong> {successData.ghatName}</p>
+                               <p><strong className="font-semibold w-24 inline-block">Time Slot:</strong> {successData.timeSlot}</p>
+                               <p><strong className="font-semibold w-24 inline-block">Date:</strong> {format(successData.date, "PPP")}</p>
+                            </div>
+                           </div>
                         </div>
-
-                        <div className="text-sm space-y-1 text-left bg-white p-4 rounded-lg shadow-inner border">
-                           <p><strong className="font-semibold w-24 inline-block">Ghat:</strong> {successData.ghatName}</p>
-                           <p><strong className="font-semibold w-24 inline-block">Time Slot:</strong> {successData.timeSlot}</p>
-                           <p><strong className="font-semibold w-24 inline-block">Date:</strong> {format(successData.date, "PPP")}</p>
-                        </div>
-                        
-                        <Button variant="outline" className='mt-6 w-full' onClick={resetFlow}>Book Another Slot</Button>
+                    </div>
+                    <div className='mt-6 space-y-2'>
+                        <Button size="lg" className='w-full' onClick={handleDownloadTicket}>
+                            <Download className="mr-2 h-4 w-4"/>
+                            Download Digital Ticket
+                        </Button>
+                        <Button variant="outline" className='w-full' onClick={resetFlow}>Book Another Slot</Button>
                     </div>
                 </motion.div>
             )}

@@ -143,7 +143,7 @@ export async function registerPilgrim(data: RegistrationPayload) {
 
             transaction.update(ghatDocRef, { timeSlots: updatedTimeSlots });
 
-            return { uniqueId, ghatName: ghatData.name };
+            return { uniqueId, ghatName: ghatData.name, fullName, numberOfPeople: numericNumberOfPeople };
         });
         
         console.log("Registration transaction successful.");
@@ -164,6 +164,8 @@ export async function registerPilgrim(data: RegistrationPayload) {
                 ghatName: resultData.ghatName,
                 timeSlot: timeSlot,
                 date: date,
+                fullName: resultData.fullName,
+                numberOfPeople: resultData.numberOfPeople,
             }
         };
 
