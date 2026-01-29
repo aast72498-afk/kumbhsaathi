@@ -105,11 +105,15 @@ export default function CrowdIntelligencePage() {
     const ghatsCollection = useMemo(() => (firestore ? collection(firestore, 'ghats') : null), [firestore]);
     const { data: ghats, loading: ghatsLoading, error: ghatsError } = useCollection<Ghat>(ghatsCollection);
 
-    const [lastUpdated, setLastUpdated] = useState(Date.now());
+    const [lastUpdated, setLastUpdated] = useState(0);
     const [timeRange, setTimeRange] = useState('5');
     const [ghatTrends, setGhatTrends] = useState<Record<string, Trend>>({});
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
+        setLastUpdated(Date.now());
+
         const timer = setInterval(() => {
             setLastUpdated(Date.now());
             // Simulate trend changes
@@ -126,6 +130,30 @@ export default function CrowdIntelligencePage() {
         }, 5000); // Update every 5 seconds
         return () => clearInterval(timer);
     }, [ghats]);
+
+    if (!isClient) {
+        return (
+             <div className="grid gap-6 md:grid-cols-3">
+                 <div className="md:col-span-2">
+                    <Card className="h-[600px] flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </Card>
+                 </div>
+                 <div className="md:col-span-1 space-y-6">
+                    <Card>
+                         <CardHeader><CardTitle>Controls</CardTitle></CardHeader>
+                         <CardContent className='flex items-center justify-center h-24'>
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                         </CardContent>
+                    </Card>
+                    <div className='space-y-4'>
+                         <h3 className="text-lg font-semibold">Live Ghat Status</h3>
+                        <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                    </div>
+                 </div>
+            </div>
+        );
+    }
 
     const secondsSinceUpdate = Math.floor((Date.now() - lastUpdated) / 1000);
 

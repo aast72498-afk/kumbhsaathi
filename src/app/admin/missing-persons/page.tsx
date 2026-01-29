@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,11 @@ import { Upload, FileText, UserCheck, Timer, Shield, Loader2 } from 'lucide-reac
 export default function MissingPersonsPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedDescription, setGeneratedDescription] = useState("");
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const handleGenerateDescription = () => {
         setIsGenerating(true);
@@ -22,6 +27,24 @@ export default function MissingPersonsPage() {
             setGeneratedDescription("Male child, approximately 5 years old, last seen wearing a red t-shirt and blue shorts. Average build, fair complexion.");
             setIsGenerating(false);
         }, 1500);
+    }
+    
+    if (!isClient) {
+        return (
+            <div className="grid gap-6 lg:grid-cols-3">
+                <Card className="lg:col-span-1 h-[600px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </Card>
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="h-[250px] flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </Card>
+                    <Card className="h-[334px] flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </Card>
+                </div>
+          </div>
+        );
     }
 
   return (

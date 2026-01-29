@@ -46,10 +46,34 @@ const formatTimestamp = (isoString: string) => {
 
 export default function SystemLogsPage() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        // Generate logs and set client flag on mount to avoid hydration mismatch
         setLogs(generateMockLogs());
+        setIsClient(true);
     }, []);
+
+    if (!isClient) {
+        return (
+            <Card>
+                 <CardHeader>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <CardTitle>System Logs & Audit Trail</CardTitle>
+                            <CardDescription>A complete record of all system actions for accountability.</CardDescription>
+                        </div>
+                    </div>
+                 </CardHeader>
+                 <CardContent>
+                    <div className="h-96 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                 </CardContent>
+            </Card>
+        )
+    }
+
 
   return (
     <Card>
@@ -105,7 +129,7 @@ export default function SystemLogsPage() {
             )) : (
                 <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                       No logs found.
                     </TableCell>
                 </TableRow>
             )}
