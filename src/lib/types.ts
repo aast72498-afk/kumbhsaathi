@@ -22,3 +22,28 @@ export type RegistrationPayload = {
   ghat: string; // This will be the shortName
   timeSlot: string;
 };
+
+export type MissingPersonReportPayload = {
+    missingPersonName: string;
+    missingPersonMobile?: string;
+    reporterContact: string;
+    lastSeenGhat: string;
+    description: string;
+};
+
+export type MissingPersonReport = MissingPersonReportPayload & {
+    caseId: string;
+    status: 'Pending' | 'Under Investigation' | 'Found';
+    createdAt: any; // Firestore Timestamp
+};
+
+export type HealthEmergencyPayload = {
+    issueType: string;
+    location: string;
+    details?: string;
+};
+
+export type HealthEmergencyAlert = HealthEmergencyPayload & {
+    status: 'Pending' | 'Responded';
+    createdAt: any; // Firestore Timestamp
+};

@@ -1,5 +1,6 @@
 import { seedDatabase } from '@/app/actions';
 import BookingInterface from '@/components/BookingInterface';
+import EmergencyFab from '@/components/EmergencyFab';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 
@@ -9,19 +10,22 @@ export default async function Home() {
   const bgImage = PlaceHolderImages.find(img => img.id === 'kumbh-bg');
   
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 relative">
-       {bgImage && (
-            <Image
-                src={bgImage.imageUrl}
-                alt={bgImage.description}
-                fill
-                className="object-cover -z-10"
-                data-ai-hint={bgImage.imageHint}
-            />
-        )}
-       <div className="w-full max-w-4xl">
-        <BookingInterface />
-      </div>
-    </main>
+    <>
+      <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 relative">
+        {bgImage && (
+              <Image
+                  src={bgImage.imageUrl}
+                  alt={bgImage.description}
+                  fill
+                  className="object-cover -z-10"
+                  data-ai-hint={bgImage.imageHint}
+              />
+          )}
+        <div className="w-full max-w-4xl z-10">
+          <BookingInterface />
+        </div>
+      </main>
+      <EmergencyFab />
+    </>
   );
 }

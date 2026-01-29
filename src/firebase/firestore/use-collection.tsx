@@ -28,7 +28,7 @@ export function useCollection<T>(query: Query | null) {
       (querySnapshot) => {
         const data = querySnapshot.docs.map(doc => ({
           ...doc.data() as T,
-          // id: doc.id, // You might want to include the doc ID
+          id: doc.id, // You might want to include the doc ID
         }));
         setState({ data, loading: false, error: null });
       },

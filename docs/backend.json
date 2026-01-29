@@ -47,6 +47,35 @@
         "currentRegistrations": { "type": "number" }
       },
       "required": ["id", "time", "maxCapacity", "currentRegistrations"]
+    },
+    "MissingPersonReport": {
+      "title": "Missing Person Report",
+      "description": "Represents a report filed for a missing person.",
+      "type": "object",
+      "properties": {
+        "caseId": { "type": "string" },
+        "missingPersonName": { "type": "string" },
+        "missingPersonMobile": { "type": "string" },
+        "reporterContact": { "type": "string" },
+        "lastSeenGhat": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Under Investigation", "Found"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["caseId", "reporterContact", "lastSeenGhat", "description", "status", "createdAt"]
+    },
+    "HealthEmergencyAlert": {
+      "title": "Health Emergency Alert",
+      "description": "Represents a request for medical assistance.",
+      "type": "object",
+      "properties": {
+        "issueType": { "type": "string" },
+        "location": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Responded"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["issueType", "location", "status", "createdAt"]
     }
   },
   "auth": {
@@ -60,6 +89,14 @@
     "/ghats/{ghatId}": {
       "schema": { "$ref": "#/backend/entities/Ghat" },
       "description": "Stores information about each Ghat and its slots."
+    },
+    "/missing_persons/{reportId}": {
+      "schema": { "$ref": "#/backend/entities/MissingPersonReport" },
+      "description": "Stores reports of missing persons."
+    },
+    "/emergency_alerts/{alertId}": {
+      "schema": { "$ref": "#/backend/entities/HealthEmergencyAlert" },
+      "description": "Stores alerts for health emergencies."
     }
   }
 }

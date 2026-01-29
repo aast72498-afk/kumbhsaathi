@@ -1,8 +1,95 @@
+'use client';
+
+import { useMemo, useEffect, useState } from 'react';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useCollection, useFirestore } from '@/firebase';
+import type { MissingPersonReport, HealthEmergencyAlert } from '@/lib/types';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Ambulance, ArrowRight, ShieldAlert } from "lucide-react";
+import { AlertCircle, Ambulance, ArrowRight, ShieldAlert, UserSearch, HeartPulse, Loader2 } from "lucide-react";
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+
+
+type CombinedAlert = (
+    (MissingPersonReport & { id: string; type: 'Missing Person' }) |
+    (HealthEmergencyAlert & { id: string; type: 'Health Emergency' })
+);
+
 
 export default function AdminDashboard() {
+  const firestore = useFirestore();
+
+  const missingPersonsQuery = useMemo(() => firestore ? query(collection(firestore, 'missing_persons'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
+  const healthAlertsQuery = useMemo(() => firestore ? query(collection(firestore, 'emergency_alerts'), orderBy('createdAt', 'desc'), limit(5)) : null, [firestore]);
+  
+  const { data: missingPersons, loading: mpLoading } = useCollection<MissingPersonReport & { id: string }>(missingPersonsQuery);
+  const { data: healthAlerts, loading: haLoading } = useCollection<HealthEmergencyAlert & { id: string }>(healthAlertsQuery);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const allAlerts = useMemo(() => {
+    if (!missingPersons && !healthAlerts) return [];
+    
+    const combined = [
+        ...(missingPersons || []).map(a => ({ ...a, type: 'Missing Person' as const })),
+        ...(healthAlerts || []).map(a => ({ ...a, type: 'Health Emergency' as const })),
+    ];
+    
+    return combined.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+    });
+  }, [missingPersons, healthAlerts]);
+
+  const getAlertIcon = (type: 'Missing Person' | 'Health Emergency') => {
+    switch (type) {
+        case 'Missing Person':
+            return <UserSearch className="h-5 w-5 text-primary" />;
+        case 'Health Emergency':
+            return <HeartPulse className="h-5 w-5 text-amber-500" />;
+        default:
+            return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+  
+  const getAlertBgColor = (type: 'Missing Person' | 'Health Emergency') => {
+      switch (type) {
+          case 'Missing Person':
+            return 'bg-primary/10 border-primary/20';
+          case 'Health Emergency':
+            return 'bg-amber-500/10 border-amber-500/20';
+          default:
+            return 'bg-muted/10 border-muted/20';
+      }
+  }
+  
+   const getAlertIconBgColor = (type: 'Missing Person' | 'Health Emergency') => {
+      switch (type) {
+          case 'Missing Person':
+            return 'bg-primary/20';
+          case 'Health Emergency':
+            return 'bg-amber-500/20';
+          default:
+            return 'bg-muted/20';
+      }
+  }
+
+  const getAlertLink = (alert: CombinedAlert) => {
+    switch (alert.type) {
+        case 'Missing Person': return '/admin/missing-persons';
+        case 'Health Emergency': return '/admin/emergency-dispatch';
+        default: return '/admin';
+    }
+  }
+
+
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <div className="md:col-span-2">
@@ -39,42 +126,46 @@ export default function AdminDashboard() {
             <CardTitle>Live Alerts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                <div className="p-2 bg-destructive/20 rounded-full">
-                    <ShieldAlert className="h-5 w-5 text-destructive" />
+            {(mpLoading || haLoading) && !isClient && (
+                <div className="flex justify-center items-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-                <div>
-                    <p className="font-semibold">High Crowd Density Alert</p>
-                    <p className="text-sm text-muted-foreground">Laxman Kund - 2 mins ago</p>
+            )}
+
+            {isClient && !mpLoading && !haLoading && allAlerts.length === 0 && (
+                <div className="text-center text-muted-foreground p-4">
+                    <ShieldAlert className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p>System is stable. No active alerts.</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto">
-                    <ArrowRight className="h-4 w-4" />
-                </Button>
-            </div>
-             <div className="flex items-start gap-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                <div className="p-2 bg-amber-500/20 rounded-full">
-                    <Ambulance className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                    <p className="font-semibold">Ambulance Stuck</p>
-                    <p className="text-sm text-muted-foreground">Near Ram Kund - 5 mins ago</p>
-                </div>
-                 <Button variant="ghost" size="icon" className="ml-auto">
-                    <ArrowRight className="h-4 w-4" />
-                </Button>
-            </div>
-             <div className="flex items-start gap-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="p-2 bg-primary/20 rounded-full">
-                    <AlertCircle className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                    <p className="font-semibold">Missing Person Reported</p>
-                    <p className="text-sm text-muted-foreground">Tapovan Area - 12 mins ago</p>
-                </div>
-                 <Button variant="ghost" size="icon" className="ml-auto">
-                    <ArrowRight className="h-4 w-4" />
-                </Button>
-            </div>
+            )}
+            
+            {isClient && allAlerts.map((alert, index) => {
+                 const isNew = alert.createdAt && (new Date().getTime() - alert.createdAt.toDate().getTime()) < 5 * 60 * 1000;
+                 return (
+                    <div key={alert.id} className={cn(
+                        "flex items-start gap-4 p-3 rounded-lg border",
+                        getAlertBgColor(alert.type),
+                        isNew && "animate-pulse"
+                    )}>
+                        <div className={cn("p-2 rounded-full", getAlertIconBgColor(alert.type))}>
+                            {getAlertIcon(alert.type)}
+                        </div>
+                        <div>
+                            <p className="font-semibold">
+                                {alert.type === 'Missing Person' ? `Missing: ${alert.missingPersonName}` : `Health: ${alert.issueType}`}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {alert.createdAt ? `${formatDistanceToNow(alert.createdAt.toDate())} ago` : 'Just now'} at {alert.type === 'Missing Person' ? alert.lastSeenGhat : alert.location}
+                            </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="ml-auto" asChild>
+                            <Link href={getAlertLink(alert)}>
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+                )
+            })}
           </CardContent>
         </Card>
         <Card>

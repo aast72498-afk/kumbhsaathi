@@ -15,7 +15,7 @@ import {
     DocumentData
 } from 'firebase/firestore';
 import { getFirebaseServer } from '@/firebase/server';
-import type { RegistrationPayload, Ghat } from '@/lib/types';
+import type { RegistrationPayload, Ghat, MissingPersonReportPayload, HealthEmergencyPayload } from '@/lib/types';
 import { mockGhats } from '@/lib/data';
 
 // --- Database Seeding Action ---
@@ -172,5 +172,66 @@ export async function registerPilgrim(data: RegistrationPayload) {
     } catch (e: any) {
         console.error("Registration Failed:", e);
         return { success: false, error: e.message || "An error occurred during registration. Please try again." };
+    }
+}
+
+// --- Emergency Reporting Actions ---
+export async function reportMissingPerson(data: MissingPersonReportPayload) {
+    const { firestore } = getFirebaseServer();
+    
+    if (!data.reporterContact || !data.lastSeenGhat || !data.description) {
+        return { success: false, error: "Missing required fields for missing person report." };
+    }
+
+    try {
+        const caseId = `MP-${new Date().getFullYear()}-${generateRandomChars(4)}`;
+        const reportData = {
+            ...data,
+            caseId,
+            status: 'Pending',
+            createdAt: serverTimestamp()
+        };
+
+        await addDoc(collection(firestore, "missing_persons"), reportData);
+        
+        await sendWebhook({
+            type: 'Missing Person',
+            caseId,
+            ...data
+        });
+
+        return { success: true, message: "Missing person case reported successfully." };
+    } catch (e: any) {
+        console.error("Failed to report missing person:", e);
+        return { success: false, error: e.message || "An error occurred while reporting the case." };
+    }
+}
+
+
+export async function reportHealthEmergency(data: HealthEmergencyPayload) {
+    const { firestore } = getFirebaseServer();
+
+    if (!data.issueType || !data.location) {
+        return { success: false, error: "Missing required fields for health emergency report." };
+    }
+
+    try {
+        const alertData = {
+            ...data,
+            status: 'Pending',
+            createdAt: serverTimestamp()
+        };
+
+        await addDoc(collection(firestore, "emergency_alerts"), alertData);
+        
+        await sendWebhook({
+            type: 'Health Emergency',
+            ...data
+        });
+
+        return { success: true, message: "Health emergency reported. Help is on the way." };
+    } catch (e: any) {
+        console.error("Failed to report health emergency:", e);
+        return { success: false, error: e.message || "An error occurred while reporting the emergency." };
     }
 }
