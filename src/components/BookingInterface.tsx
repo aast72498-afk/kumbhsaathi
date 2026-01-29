@@ -55,7 +55,7 @@ declare global {
 
 // --- Main Booking Component ---
 export default function BookingInterface() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedGhat, setSelectedGhat] = useState<Ghat | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   
@@ -99,6 +99,25 @@ export default function BookingInterface() {
     setSelectedDate(new Date());
   }, []);
 
+  // Initialize and clean up reCAPTCHA verifier
+  useEffect(() => {
+    if (auth && !ghatsLoading && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+    // Cleanup
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+      }
+    }
+  }, [auth, ghatsLoading]);
+
+
   const handleGhatSelect = (ghat: Ghat) => {
     setSelectedGhat(ghat);
     setSelectedSlot(null); // Reset slot when ghat changes
@@ -137,25 +156,15 @@ export default function BookingInterface() {
   const handleSendOtp = async (data: BookingFormValues) => {
     setIsLoading(true);
     setError(null);
-    if (!auth) {
-        setError("Authentication service is not available.");
+    if (!auth || !window.recaptchaVerifier) {
+        setError("Authentication service is not ready. Please try again in a moment.");
         setIsLoading(false);
         return;
     }
-
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-    }
+    
+    const appVerifier = window.recaptchaVerifier;
     
     try {
-      const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved. `signInWithPhoneNumber` will resolve.
-        }
-      });
-      window.recaptchaVerifier = appVerifier;
-
       const phoneNumber = "+91" + data.mobileNumber;
       const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
       
@@ -166,6 +175,8 @@ export default function BookingInterface() {
     } catch (e: any) {
         setError(`Failed to send OTP: ${e.message}`);
         console.error("OTP Send Error:", e);
+        // Reset verifier on error for retry
+        appVerifier.clear();
     } finally {
         setIsLoading(false);
     }
