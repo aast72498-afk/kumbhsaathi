@@ -1,110 +1,136 @@
 {
   "entities": {
-    "Registration": {
-      "title": "Pilgrim Registration",
-      "description": "Represents a single registration for a pilgrim or a group.",
+    "PilgrimRegistration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PilgrimRegistration",
       "type": "object",
+      "description": "Represents a pilgrim's registration for a specific time slot at a Ghat.",
       "properties": {
-        "id": { "type": "string", "description": "The unique registration ID (KM-27-...)." },
-        "fullName": { "type": "string" },
-        "mobileNumber": { "type": "string" },
-        "numberOfPeople": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "ghatId": { "type": "string" },
-        "ghatName": { "type": "string" },
-        "timeSlot": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "fullName", "mobileNumber", "numberOfPeople", "date", "ghatId", "ghatName", "timeSlot", "createdAt"]
-    },
-    "Ghat": {
-      "title": "Ghat Information",
-      "description": "Represents a Ghat with its details and time slots.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string", "description": "The unique ID for the ghat (e.g., ram-kund-ghat)." },
-        "name": { "type": "string" },
-        "shortName": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "imageHint": { "type": "string" },
-        "timeSlots": {
-          "type": "array",
-          "items": {
-            "$ref": "#/backend/entities/TimeSlot"
-          }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the pilgrim registration record."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the pilgrim."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Mobile number of the pilgrim (for WhatsApp/Telegram communication)."
+        },
+        "numberOfPeople": {
+          "type": "number",
+          "description": "Number of people in the pilgrim's group."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date for the Ghat visit.",
+          "format": "date-time"
+        },
+        "ghatId": {
+          "type": "string",
+          "description": "Reference to Ghat. (Relationship: Ghat 1:N PilgrimRegistration)"
+        },
+        "uniqueId": {
+          "type": "string",
+          "description": "Unique confirmation code generated for the registration (KM-27-[GhatShortName]-[4RandomChars])."
+        },
+        "slotTime": {
+          "type": "string",
+          "description": "The time slot for which the pilgrim has registered."
         }
       },
-      "required": ["id", "name", "shortName", "timeSlots", "imageUrl", "imageHint"]
+      "required": [
+        "id",
+        "fullName",
+        "mobileNumber",
+        "numberOfPeople",
+        "date",
+        "ghatId",
+        "uniqueId",
+        "slotTime"
+      ]
     },
-    "TimeSlot": {
-      "title": "Time Slot",
-      "description": "Represents a time slot within a Ghat.",
+    "Ghat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ghat",
       "type": "object",
+      "description": "Represents a Ghat location with its available time slots and capacity.",
       "properties": {
-        "id": { "type": "string" },
-        "time": { "type": "string" },
-        "maxCapacity": { "type": "number" },
-        "currentRegistrations": { "type": "number" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Ghat location."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the Ghat (e.g., Ram Kund, Tapovan)."
+        },
+        "shortName": {
+          "type": "string",
+          "description": "Short name of the Ghat (e.g., RK for Ram Kund)."
+        },
+        "timeSlots": {
+          "type": "array",
+          "description": "Array of available time slots at the Ghat.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maxCapacity": {
+          "type": "number",
+          "description": "Maximum capacity for each time slot at the Ghat."
+        }
       },
-      "required": ["id", "time", "maxCapacity", "currentRegistrations"]
-    },
-    "MissingPersonReport": {
-      "title": "Missing Person Report",
-      "description": "Represents a report filed for a missing person.",
-      "type": "object",
-      "properties": {
-        "caseId": { "type": "string" },
-        "missingPersonName": { "type": "string" },
-        "missingPersonMobile": { "type": "string" },
-        "reporterContact": { "type": "string" },
-        "lastSeenGhat": { "type": "string" },
-        "detailedLocation": { "type": "string", "description": "More specific details about the last seen location." },
-        "photoUrl": { "type": "string", "description": "A data URL of the missing person's photo." },
-        "description": { "type": "string" },
-        "status": { "type": "string", "enum": ["Pending", "Under Investigation", "Found"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "broadcastSent": { "type": "boolean", "description": "Whether an alert has been broadcasted for this case." }
-      },
-      "required": ["caseId", "missingPersonName", "reporterContact", "lastSeenGhat", "detailedLocation", "description", "status", "createdAt"]
-    },
-    "HealthEmergencyAlert": {
-      "title": "Health Emergency Alert",
-      "description": "Represents a request for medical assistance.",
-      "type": "object",
-      "properties": {
-        "caseId": { "type": "string" },
-        "reporterName": { "type": "string" },
-        "reporterContact": { "type": "string" },
-        "peopleAffected": { "type": "number" },
-        "issueType": { "type": "string" },
-        "locationGhat": { "type": "string" },
-        "detailedLocation": { "type": "string" },
-        "details": { "type": "string" },
-        "status": { "type": "string", "enum": ["Pending", "On-site", "Responded"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["caseId", "reporterName", "reporterContact", "peopleAffected", "issueType", "locationGhat", "detailedLocation", "status", "createdAt"]
+      "required": [
+        "id",
+        "name",
+        "shortName",
+        "timeSlots",
+        "maxCapacity"
+      ]
     }
   },
   "auth": {
-    "providers": ["phone"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/registrations/{registrationId}": {
-      "schema": { "$ref": "#/backend/entities/Registration" },
-      "description": "Stores individual pilgrim registrations."
-    },
-    "/ghats/{ghatId}": {
-      "schema": { "$ref": "#/backend/entities/Ghat" },
-      "description": "Stores information about each Ghat and its slots."
-    },
-    "/missing_persons/{reportId}": {
-      "schema": { "$ref": "#/backend/entities/MissingPersonReport" },
-      "description": "Stores reports of missing persons."
-    },
-    "/emergency_alerts/{alertId}": {
-      "schema": { "$ref": "#/backend/entities/HealthEmergencyAlert" },
-      "description": "Stores alerts for health emergencies."
-    }
+    "structure": [
+      {
+        "path": "/ghats/{ghatId}",
+        "definition": {
+          "entityName": "Ghat",
+          "schema": {
+            "$ref": "#/backend/entities/Ghat"
+          },
+          "description": "Stores details about each Ghat, including its name, time slots, and maximum capacity. All users can read ghat information.",
+          "params": [
+            {
+              "name": "ghatId",
+              "description": "Unique identifier for the Ghat."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/pilgrim_registrations/{registrationId}",
+        "definition": {
+          "entityName": "PilgrimRegistration",
+          "schema": {
+            "$ref": "#/backend/entities/PilgrimRegistration"
+          },
+          "description": "Stores pilgrim registration data. The `ghatId` field enables efficient querying of registrations for specific Ghats. Since the application uses anonymous auth, all authenticated users can create a PilgrimRegistration.",
+          "params": [
+            {
+              "name": "registrationId",
+              "description": "Unique identifier for the pilgrim registration."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to optimize for security, scalability, and real-time updates while adhering to the principle of Authorization Independence. This is achieved by prioritizing path-based ownership and avoiding complex hierarchical authorization dependencies (`get()` calls in security rules). The structure uses Structural Segregation to ensure all documents in a collection share the same security requirements. The use of explicit entity naming and descriptions enhances debuggability.\n\nTo avoid the 'auth/operation-not-allowed' error, ensure Phone Auth is enabled in the Firebase Console for the project. This error indicates that the app is trying to use a feature that is not enabled for the project.\n\nThe structure is designed to support QAPs (Rules are not Filters) by avoiding `get()` calls in the security rules and by ensuring that list operations can be securely performed without filtering based on data content. Private user data is stored under the `/users/{userId}` path. All documents in the collection are secured to the user's ID. Collaborative data, such as `Ghat` information, is stored in a top-level `/ghats` collection, assuming this information is globally accessible. If Ghat information requires restricted access in the future, a membership map can be added to each `Ghat` document and denormalized to related `PilgrimRegistration` documents.\n\nThe `PilgrimRegistration` data is stored in a top-level `/pilgrim_registrations` collection. This allows for direct querying and avoids unnecessary nesting.  Since there is a `1:N` relationship between `Ghat` and `PilgrimRegistration`, the `ghatId` is included in the `PilgrimRegistration` document. This way, the application can easily query registrations for a specific `Ghat` while maintaining authorization independence.\n"
   }
 }
