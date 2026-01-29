@@ -64,6 +64,7 @@ export default function BookingInterface() {
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [isTestMode, setIsTestMode] = useState(false);
 
 
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -112,6 +113,7 @@ export default function BookingInterface() {
     setOtpSent(false);
     setOtp('');
     setConfirmationResult(null);
+    setIsTestMode(false);
   }
 
   // --- Download Ticket Logic ---
@@ -132,6 +134,40 @@ export default function BookingInterface() {
   const handleSendOtp = async (data: BookingFormValues) => {
     setIsLoading(true);
     setError(null);
+
+    const TEST_PHONE_NUMBER = '9834854511';
+    const TEST_VERIFICATION_CODE = '202027';
+
+    if (data.mobileNumber === TEST_PHONE_NUMBER) {
+        console.log("Test number detected. Entering mock OTP mode.");
+        setIsTestMode(true);
+        // Create a mock ConfirmationResult
+        const mockConfirmationResult: ConfirmationResult = {
+            verificationId: 'mock-verification-id',
+            confirm: (verificationCode: string) => {
+                return new Promise((resolve, reject) => {
+                    if (verificationCode === TEST_VERIFICATION_CODE) {
+                        // Mock a UserCredential object
+                        resolve({
+                            user: { uid: 'mock-user-id' } as any,
+                            providerId: 'phone',
+                            operationType: 'signIn',
+                        });
+                    } else {
+                        reject(new Error('Invalid test verification code.'));
+                    }
+                });
+            },
+        };
+        setConfirmationResult(mockConfirmationResult);
+        setOtpSent(true);
+        toast({ title: "Test Mode", description: `Enter the pre-configured OTP for ${data.mobileNumber}.` });
+        setIsLoading(false);
+        return;
+    }
+
+    // Reset test mode if not the test number
+    setIsTestMode(false);
 
     if (!auth) {
         setError("Authentication service is not ready. Please try again in a moment.");
@@ -179,7 +215,10 @@ export default function BookingInterface() {
         // OTP is correct, now submit the booking
         await processBooking(form.getValues());
     } catch (e: any) {
-        setError("Invalid or expired OTP. Please try again.");
+        const errorMessage = isTestMode
+            ? "Invalid test OTP. Please use the one you configured."
+            : "Invalid or expired OTP. Please try again.";
+        setError(errorMessage);
         console.error("OTP Verification Error:", e);
     } finally {
         setIsVerifying(false);

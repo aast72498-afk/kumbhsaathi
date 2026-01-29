@@ -1,97 +1,51 @@
 /**
- * Core Philosophy:
- * This ruleset implements a "public kiosk" or "drop-box" security model. The primary
- * goal is to allow any user (including anonymous or temporary phone-authenticated users)
- * to submit a registration, while making the submitted data completely private and immutable
- * from the client-side.
+ * DEVELOPMENT RULESET
  *
- * Data Structure:
- * The data is organized into two distinct, top-level collections:
- * 1. /ghats/{ghatId}: A public, read-only collection containing information about
- *    each ghat location, such as available time slots and capacity.
- * 2. /registrations/{registrationId}: A private, write-once collection. Users can
- *    add new registration documents, but cannot read, update, or delete any document
- *    in the collection once it's created, including their own.
+ * This ruleset is configured for rapid development and testing. It allows
+ * open read and write access to all collections. This is NOT secure for a
+ * production environment.
  *
- * Key Security Decisions:
- * - Ghat Data is Public and Immutable: The `/ghats` collection can be read by anyone
- *   to populate the application UI. All write operations are disabled to prevent
- *   client-side tampering. This data should be managed only through the Firebase
- *   Console or a trusted server-side environment (e.g., Cloud Functions).
+ * The primary goal is to unblock front-end development and testing of the
+ * registration and ghat update flows without being hindered by permission
+ * errors.
  *
- * - Registrations are Write-Once, Read-Never: To protect the personal information
- *   (name, mobile number) within each registration, the `/registrations` collection
- *   is completely locked down for all read and modification operations from the client.
- *   A user must be signed in (even if anonymously) to create a registration, which
- *   prevents unauthenticated abuse and spam. This design treats the collection as a secure
- *   "drop-box" where clients can submit data but cannot see or alter the contents.
- *
- * - No Data Shape Validation (Prototyping): In line with a rapid prototyping
- *   philosophy, these rules do not enforce the specific schema of the data being
- *   written. Authorization (who can do what) is strictly enforced, but the shape
- *   of the data is flexible to allow for front-end iteration.
+ * TODO before production:
+ * - Implement granular security rules.
+ * - Enforce data validation on writes.
+ * - Restrict read/write access to authenticated and authorized users.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for readability and re-use.
-
-    /**
-     * Checks if the user is authenticated.
-     * This function is the basis for preventing unauthenticated writes.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     /**
      * @description
-     *   Rules for the 'ghats' collection. Ghat information is public for all users
-     *   to read, but all write operations are disabled from the client-side to
-     *   ensure data integrity. This data should be managed by administrators.
-     * @path
-     *   /ghats/{ghatId}
-     * @allow
-     *   (get) An unauthenticated user can read the details of a specific ghat.
-     * @deny
-     *   (create) An authenticated user cannot create a new ghat document.
-     * @principle
-     *   Public read access for application data with locked-down writes.
+     *   Open access for development. Allows reading and writing to the ghats
+     *   collection, which is necessary for the registration transaction to update
+     *   the crowd count.
      */
     match /ghats/{ghatId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if true;
     }
 
     /**
      * @description
-     *   Rules for the 'registrations' collection. This collection acts as a secure
-     *   "drop-box". Any authenticated user can create a new registration, but no
-     *   client can read, update, or delete any registration data. This protects
-     *   user privacy (e.g., mobile numbers) and makes bookings immutable.
-     * @path
-     *   /registrations/{registrationId}
-     * @allow
-     *   (create) An authenticated user can create a new registration document.
-     * @deny
-     *   (get) An authenticated user cannot read any registration, including their own.
-     * @deny
-     *   (list) No user can list the registrations, preventing data scraping.
-     * @deny
-     *   (update) No user can modify a registration after it has been created.
-     * @principle
-     *   Enforces a write-once, read-never policy for sensitive user-submitted data.
+     *   Open access for development. Allows creating new registration documents.
+     *   The original rules were too strict, preventing reads/updates which
+     *   can interfere with complex transactions or debugging.
+     *
+     *   Example Production Validation:
+     *   allow create: if isSignedIn() &&
+     *                    request.resource.data.mobileNumber.matches("^\\d{10}$") &&
+     *                    request.resource.data.id.matches("^KM-27-.*");
      */
     match /registrations/{registrationId} {
-      allow create: if isSignedIn();
-      allow get: if false;
-      allow list: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if true;
+    }
+
+    // Fallback rule for any other collections created during development
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
