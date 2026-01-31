@@ -7,6 +7,15 @@ import type { MissingPersonReport, HealthEmergencyAlert } from '@/lib/types';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { BroadcastAlertForm } from '@/components/BroadcastAlertForm';
 import { AlertCircle, Ambulance, ArrowRight, ShieldAlert, UserSearch, HeartPulse, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -28,6 +37,8 @@ export default function AdminDashboard() {
   const { data: missingPersons, loading: mpLoading } = useCollection<MissingPersonReport & { id: string }>(missingPersonsQuery);
   const { data: healthAlerts, loading: haLoading } = useCollection<HealthEmergencyAlert & { id: string }>(healthAlertsQuery);
   const [isClient, setIsClient] = useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -178,7 +189,22 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-2">
                 <Button variant="destructive" className="w-full justify-start" disabled={!hasActiveHealthEmergency}>Clear Emergency Route</Button>
-                <Button variant="outline" className="w-full justify-start">Broadcast Crowd Alert</Button>
+                <Dialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">Broadcast Crowd Alert</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                      <DialogTitle>Broadcast Crowd Alert</DialogTitle>
+                      <DialogDescription>
+                        Fill in the details below. An alert will be prepared for you to send via Telegram.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="pt-4">
+                      <BroadcastAlertForm setOpen={setIsAlertDialogOpen} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" className="w-full justify-start">Lock Ghat Entry</Button>
             </CardContent>
         </Card>
