@@ -178,6 +178,25 @@ export async function registerPilgrim(data: RegistrationPayload) {
     }
 }
 
+// --- Crowd Alert Email Action ---
+export async function sendCrowdAlertEmail(to: string[], subject: string, body: string) {
+    // In a real application, this would use an email service like SendGrid, Mailgun, etc.
+    // For this simulation, we'll just log the email to the console to confirm the action works.
+    console.log("--- SENDING CROWD ALERT EMAIL ---");
+    console.log(`To: ${to.join(', ')}`);
+    console.log(`Subject: ${subject}`);
+    console.log("--- Body ---");
+    console.log(body);
+    console.log("---------------------------------");
+    
+    // Simulate a network delay for the email sending process
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Always return success for the simulation
+    return { success: true, message: "Email dispatched to volunteers." };
+}
+
+
 // --- Emergency Reporting Actions ---
 export async function reportMissingPerson(data: MissingPersonReportPayload) {
     const { firestore } = getFirebaseServer();

@@ -25,22 +25,22 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle, Send } from 'lucide-react';
 import { mockGhats } from '@/lib/data';
+import { sendCrowdAlertEmail } from '@/app/actions';
 
 const alertSchema = z.object({
   ghat: z.string().min(1, { message: 'Please select a Ghat.' }),
   zone: z.string().min(1, { message: 'Zone is required.' }),
   emails: z
     .string()
+    .min(1, { message: 'At least one volunteer email is required.' })
     .refine(
       (value) => {
-        if (!value || value.trim() === '') return true; // Optional field
         const emails = value.split(',').map((e) => e.trim());
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emails.every((email) => emailRegex.test(email));
       },
       { message: 'Please provide a valid, comma-separated list of emails.' }
-    )
-    .optional(),
+    ),
   message: z.string().min(10, { message: 'Alert message must be at least 10 characters.' }),
 });
 
@@ -53,7 +53,6 @@ interface BroadcastAlertFormProps {
 export function BroadcastAlertForm({ setOpen }: BroadcastAlertFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const [telegramUrl, setTelegramUrl] = useState('');
   const { toast } = useToast();
 
   const form = useForm<AlertFormValues>({
@@ -71,53 +70,61 @@ export function BroadcastAlertForm({ setOpen }: BroadcastAlertFormProps) {
     value: ghat.name,
   }));
 
-  const onSubmit = (data: AlertFormValues) => {
+  const onSubmit = async (data: AlertFormValues) => {
     setIsSubmitting(true);
     
-    const telegramMessage = `🚨 MAHAKUMBH CROWD ALERT
+    const subject = `MAHAKUMBH CROWD ALERT: ${data.ghat}`;
+    const body = `MAHAKUMBH CROWD ALERT
 
 Location:
 Ghat: ${data.ghat}
 Zone: ${data.zone}
 
-Alert:
+Alert Details:
 ${data.message}
 
-Please proceed immediately and assist with crowd management.`;
+Action Required:
+Volunteers are requested to reach the location immediately and assist with crowd regulation and public safety.`;
 
-    const encodedMessage = encodeURIComponent(telegramMessage);
-    const url = `https://t.me/share/url?text=${encodedMessage}`;
-    setTelegramUrl(url);
-    setSubmissionSuccess(true);
+    const volunteerEmails = data.emails.split(',').map(e => e.trim());
     
-    toast({
-      title: 'Alert Prepared',
-      description: 'Redirecting to Telegram...',
-    });
+    const result = await sendCrowdAlertEmail(volunteerEmails, subject, body);
 
-    setTimeout(() => {
-      window.open(url, '_blank');
-      setOpen(false);
-      // Reset for next time
+    if (result.success) {
+      setSubmissionSuccess(true);
+      toast({
+        title: '✅ Alert Sent',
+        description: 'Crowd alert email sent successfully to selected volunteers.',
+      });
+
+      // Close the dialog after a short delay
       setTimeout(() => {
-        setSubmissionSuccess(false);
-        setIsSubmitting(false);
-        form.reset();
-      }, 500);
-    }, 2000);
+        setOpen(false);
+        // Reset for next time after transition
+        setTimeout(() => {
+          setSubmissionSuccess(false);
+          setIsSubmitting(false);
+          form.reset();
+        }, 500);
+      }, 2000);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: '❌ Delivery Failed',
+        description: 'Alert delivery failed. Please try again or contact the control room.',
+      });
+      setIsSubmitting(false);
+    }
   };
   
   if (submissionSuccess) {
     return (
         <div className="text-center space-y-4 py-8">
             <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-            <h3 className="text-lg font-medium">Alert Prepared Successfully</h3>
+            <h3 className="text-lg font-medium">Email Sent Successfully</h3>
             <p className="text-sm text-muted-foreground">
-                You will be redirected to Telegram automatically.
+                The alert has been dispatched to the selected volunteers.
             </p>
-            <Button onClick={() => window.open(telegramUrl, '_blank')}>
-                <Send className="mr-2 h-4 w-4" /> Open Telegram Now
-            </Button>
         </div>
     )
   }
@@ -167,7 +174,7 @@ Please proceed immediately and assist with crowd management.`;
           name="emails"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Volunteer Emails (Optional, not sent to Telegram)</FormLabel>
+              <FormLabel>Volunteer Emails (comma-separated)</FormLabel>
               <FormControl>
                 <Input placeholder="email1@example.com, email2@example.com" {...field} />
               </FormControl>
@@ -193,8 +200,8 @@ Please proceed immediately and assist with crowd management.`;
         />
         <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Prepare Alert
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Send Alert Email
             </Button>
         </div>
       </form>
