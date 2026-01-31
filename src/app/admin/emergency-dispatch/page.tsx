@@ -26,6 +26,13 @@ const initialVehicles: Vehicle[] = [
     { id: 'AMB-02', type: 'Ambulance', location: 'Laxman Kund Parking', status: 'On Site', position: { top: '75%', left: '25%' } },
 ];
 
+const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <Card className={cn("bg-card/40 backdrop-blur-lg border-border/50", className)}>
+        {children}
+    </Card>
+);
+
+
 export default function EmergencyDispatchPage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
     const [clearingRoute, setClearingRoute] = useState(false);
@@ -38,7 +45,6 @@ export default function EmergencyDispatchPage() {
         setClearingRoute(true);
         setBroadcastSent(false);
 
-        // Simulate API call and response
         setTimeout(() => {
             console.log(`Broadcasting geo-alert around ${stuckVehicle.location}`);
             setBroadcastSent(true);
@@ -72,16 +78,16 @@ export default function EmergencyDispatchPage() {
     return (
         <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-                <Card className="h-[600px]">
+                <GlassCard className="h-[600px]">
                     <CardHeader>
                         <CardTitle>Live Emergency Map</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="relative h-[500px] w-full rounded-lg bg-muted/20 border flex items-center justify-center">
+                        <div className="relative h-[500px] w-full rounded-lg bg-black/30 border flex items-center justify-center">
                             <p className="text-muted-foreground">Interactive City Map Placeholder</p>
                             {vehicles.map(v => (
-                                <div key={v.id} className="absolute p-2 bg-background/80 rounded-full shadow-lg border-2" style={{ top: v.position.top, left: v.position.left }}>
-                                    <div className={cn("animate-pulse", v.status === 'Stuck' ? 'text-destructive' : 'text-primary')}>
+                                <div key={v.id} className="absolute p-2 bg-background/80 backdrop-blur-sm rounded-full shadow-lg border-2" style={{ top: v.position.top, left: v.position.left }}>
+                                    <div className={cn(v.status === 'Stuck' ? 'text-destructive animate-pulse' : 'text-primary')}>
                                         {getVehicleIcon(v.type)}
                                     </div>
                                     {v.status === 'Stuck' && (
@@ -105,17 +111,17 @@ export default function EmergencyDispatchPage() {
                             )}
                         </div>
                     </CardContent>
-                </Card>
+                </GlassCard>
             </div>
             <div className="lg:col-span-1 space-y-6">
-                <Card>
+                <GlassCard>
                     <CardHeader>
                         <CardTitle>Vehicle Status</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
-                                <TableRow>
+                                <TableRow className="hover:bg-transparent">
                                     <TableHead>Vehicle</TableHead>
                                     <TableHead>Location</TableHead>
                                     <TableHead>Status</TableHead>
@@ -123,7 +129,7 @@ export default function EmergencyDispatchPage() {
                             </TableHeader>
                             <TableBody>
                                 {vehicles.map(v => (
-                                    <TableRow key={v.id}>
+                                    <TableRow key={v.id} className="hover:bg-muted/50">
                                         <TableCell className="font-medium flex items-center gap-2">
                                             {getVehicleIcon(v.type)} {v.id}
                                         </TableCell>
@@ -136,9 +142,9 @@ export default function EmergencyDispatchPage() {
                             </TableBody>
                         </Table>
                     </CardContent>
-                </Card>
+                </GlassCard>
 
-                <Card className={cn("transition-all", stuckVehicle ? 'border-destructive bg-destructive/5' : 'bg-card')}>
+                <GlassCard className={cn("transition-all", stuckVehicle ? 'border-destructive/50' : '')}>
                     <CardHeader>
                         <CardTitle className={cn(stuckVehicle && "text-destructive")}>Dispatch Actions</CardTitle>
                     </CardHeader>
@@ -168,7 +174,7 @@ export default function EmergencyDispatchPage() {
                                          <CheckCircle className="h-4 w-4 text-green-500" />
                                         <AlertTitle>Broadcast Sent!</AlertTitle>
                                         <AlertDescription>
-                                            Geo-alert sent to a 500m radius around vehicle. Route clearing in progress.
+                                            Geo-alert sent to a 500m radius. Route clearing in progress.
                                         </AlertDescription>
                                     </Alert>
                                 )}
@@ -184,7 +190,7 @@ export default function EmergencyDispatchPage() {
                     <CardFooter>
                        <p className="text-xs text-muted-foreground text-center w-full">All actions are logged for accountability.</p>
                     </CardFooter>
-                </Card>
+                </GlassCard>
             </div>
         </div>
     );

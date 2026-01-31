@@ -43,7 +43,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 setIsVerified(true);
             }
         } catch (e) {
-            // sessionStorage is not available
             router.replace('/login');
         }
     }, [router]);
@@ -73,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="dark bg-background text-foreground min-h-screen">
             <SidebarProvider>
-                <Sidebar>
+                <Sidebar variant="inset" collapsible="icon">
                     <SidebarHeader>
                         <div className="flex items-center gap-2">
                             <Button variant="ghost" size="icon" asChild>
@@ -127,16 +126,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </SidebarFooter>
                 </Sidebar>
                 <SidebarInset>
-                    <header className="flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6 sticky top-0 z-30">
+                    <header className="flex h-14 items-center justify-between border-b bg-background/60 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 lg:px-6 sticky top-0 z-30">
                          <div className="flex items-center gap-2">
                             <SidebarTrigger className="md:hidden" />
-                            <h1 className="text-xl font-semibold hidden md:block">Live Control Room: Nashik</h1>
+                            <h1 className="text-xl font-semibold hidden md:block">Kumbh Saathi Urban Intelligence</h1>
                          </div>
                         <div className="flex-1"></div>
                         <div className="flex items-center gap-6">
                             <div className="flex items-center gap-2">
                                 <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
-                                <span className="text-sm font-medium text-muted-foreground">Real-time Sync</span>
+                                <span className="text-sm font-medium text-muted-foreground">Live</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <Clock className="h-4 w-4" />

@@ -16,8 +16,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, X, UserCircle, Phone, MapPin, Milestone, MessageSquare, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type ReportWithId = MissingPersonReport & { id: string };
+
+const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <Card className={cn("bg-card/40 backdrop-blur-lg border-border/50", className)}>
+        {children}
+    </Card>
+);
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | null }) => {
     if (!value) return null;
@@ -52,11 +59,9 @@ export default function MissingPersonsPage() {
     }, []);
     
     useEffect(() => {
-        // If the selected report is no longer in the list (e.g., deleted), clear the selection.
         if (selectedReport && reports && !reports.find(r => r.id === selectedReport.id)) {
             setSelectedReport(null);
         }
-        
         if (reports && reports.length > 0 && !selectedReport) {
             setSelectedReport(reports[0]);
         }
@@ -68,9 +73,6 @@ export default function MissingPersonsPage() {
         const result = await updateMissingPersonStatus(selectedReport.id, status);
         if (result.success) {
             toast({ title: "Action Successful", description: result.message });
-            if (status === 'Found') {
-                // The useEffect hook will handle clearing the selection
-            }
         } else {
             toast({ variant: 'destructive', title: "Update Failed", description: result.error });
         }
@@ -83,7 +85,6 @@ export default function MissingPersonsPage() {
         const result = await broadcastMissingPersonAlert(selectedReport.id);
         if (result.success) {
             toast({ title: "Broadcast Sent", description: result.message });
-            // The report in the list will be updated by the onSnapshot listener from useCollection
         } else {
             toast({ variant: 'destructive', title: "Broadcast Failed", description: result.error });
         }
@@ -102,20 +103,19 @@ export default function MissingPersonsPage() {
     if (!isClient) {
         return (
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[80vh]">
-                <Card className="md:col-span-1 h-full flex items-center justify-center">
+                <GlassCard className="md:col-span-1 h-full flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </Card>
-                <Card className="md:col-span-2 h-full flex items-center justify-center">
+                </GlassCard>
+                <GlassCard className="md:col-span-2 h-full flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </Card>
+                </GlassCard>
             </div>
         )
     }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-10rem)]">
-            {/* Left Panel: Cases List */}
-            <Card className="md:col-span-1 flex flex-col">
+            <GlassCard className="md:col-span-1 flex flex-col">
                 <CardHeader>
                     <CardTitle>Live Cases</CardTitle>
                     <CardDescription>All active missing person reports.</CardDescription>
@@ -123,7 +123,7 @@ export default function MissingPersonsPage() {
                 <CardContent className="p-0 flex-grow">
                     <ScrollArea className="h-full">
                         <Table>
-                            <TableHeader className="sticky top-0 bg-card z-10">
+                            <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-xl z-10">
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Status</TableHead>
@@ -151,14 +151,9 @@ export default function MissingPersonsPage() {
                                         </TableCell>
                                         <TableCell className="text-xs">
                                             {report.createdAt ? (
-                                                <>
-                                                    <div className="font-medium text-foreground">
-                                                        {formatDistanceToNow(report.createdAt.toDate(), { addSuffix: true })}
-                                                    </div>
-                                                    <div className="text-muted-foreground">
-                                                        {report.createdAt.toDate().toLocaleString()}
-                                                    </div>
-                                                </>
+                                                <div title={report.createdAt.toDate().toLocaleString()}>
+                                                    {formatDistanceToNow(report.createdAt.toDate(), { addSuffix: true })}
+                                                </div>
                                             ) : 'N/A'}
                                         </TableCell>
                                     </TableRow>
@@ -172,10 +167,9 @@ export default function MissingPersonsPage() {
                         </Table>
                     </ScrollArea>
                 </CardContent>
-            </Card>
+            </GlassCard>
 
-            {/* Right Panel: Case Details */}
-            <Card className="md:col-span-2 flex flex-col">
+            <GlassCard className="md:col-span-2 flex flex-col">
                 {selectedReport ? (
                     <>
                         <CardHeader>
@@ -197,7 +191,7 @@ export default function MissingPersonsPage() {
                                      <Button size="sm" variant="outline" onClick={() => handleStatusUpdate('Under Investigation')} disabled={isUpdatingStatus || selectedReport.status === 'Under Investigation'}>
                                         Investigating
                                     </Button>
-                                    <Button size="sm" onClick={() => handleStatusUpdate('Found')} disabled={isUpdatingStatus || selectedReport.status === 'Found'}>
+                                    <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate('Found')} disabled={isUpdatingStatus || selectedReport.status === 'Found'}>
                                         Mark as Found
                                     </Button>
                                 </div>
@@ -215,7 +209,7 @@ export default function MissingPersonsPage() {
                                             className="rounded-lg border object-cover aspect-square bg-muted"
                                         />
                                     ) : (
-                                        <div className="aspect-square w-full bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground">
+                                        <div className="aspect-square w-full bg-muted/20 rounded-lg flex flex-col items-center justify-center text-muted-foreground">
                                             <ImageIcon className="h-16 w-16" />
                                             <p>No photo provided</p>
                                         </div>
@@ -243,7 +237,7 @@ export default function MissingPersonsPage() {
                         )}
                     </div>
                 )}
-            </Card>
+            </GlassCard>
         </div>
     );
 }

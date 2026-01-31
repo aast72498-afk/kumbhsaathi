@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ListFilter, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type LogEntry = {
   id: string;
@@ -26,6 +27,12 @@ const generateMockLogs = (): LogEntry[] => [
   { id: 'log-5', timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), action: 'USER_LOGIN', performedBy: 'Admin_01', location: 'Control Room IP 192.168.1.10', details: 'User logged in successfully.' },
   { id: 'log-6', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), action: 'USER_LOGIN', performedBy: 'Helpdesk_04', location: 'Helpdesk Kiosk 3', details: 'User logged in successfully.' },
 ];
+
+const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <Card className={cn("bg-card/40 backdrop-blur-lg border-border/50", className)}>
+        {children}
+    </Card>
+);
 
 const getActionVariant = (action: LogEntry['action']): 'destructive' | 'secondary' | 'default' | 'outline' => {
     switch (action) {
@@ -49,14 +56,13 @@ export default function SystemLogsPage() {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        // Generate logs and set client flag on mount to avoid hydration mismatch
         setLogs(generateMockLogs());
         setIsClient(true);
     }, []);
 
     if (!isClient) {
         return (
-            <Card>
+            <GlassCard>
                  <CardHeader>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
@@ -70,13 +76,13 @@ export default function SystemLogsPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                  </CardContent>
-            </Card>
+            </GlassCard>
         )
     }
 
 
   return (
-    <Card>
+    <GlassCard>
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -107,7 +113,7 @@ export default function SystemLogsPage() {
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[180px]">Timestamp</TableHead>
               <TableHead className="w-[150px]">Action</TableHead>
               <TableHead className="w-[150px]">Performed By</TableHead>
@@ -117,7 +123,7 @@ export default function SystemLogsPage() {
           </TableHeader>
           <TableBody>
             {logs.length > 0 ? logs.map((log) => (
-              <TableRow key={log.id}>
+              <TableRow key={log.id} className="hover:bg-muted/50">
                 <TableCell className="font-mono text-xs">{formatTimestamp(log.timestamp)}</TableCell>
                 <TableCell>
                   <Badge variant={getActionVariant(log.action)}>{log.action.replace('_', ' ')}</Badge>
@@ -141,6 +147,6 @@ export default function SystemLogsPage() {
                 Showing <strong>{logs.length}</strong> of <strong>{logs.length}</strong> entries.
             </div>
         </CardFooter>
-    </Card>
+    </GlassCard>
   );
 }
