@@ -4,8 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'KumbhSaathi - Smart Slot Management',
-  description: 'Your digital companion for a divine experience at the Nashik Kumbh Mela. Book your Ghat slots seamlessly.',
+  title: 'Kumbh Saathi | Smart City Nashik',
+  description: 'Your digital companion for a divine experience at the Nashik Kumbh Mela.',
+  icons: {
+    icon: 'https://iili.io/fLU26ZX.jpg', // Ye line Firebase logo ko replace karegi
+    apple: 'https://iili.io/fLU26ZX.jpg',
+  },
 };
 
 export default function RootLayout({
@@ -15,15 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+      <body className="antialiased font-sans"> 
         <FirebaseClientProvider>
-          {children}
+          {children} {/* Sirf content dikhega, koi extra navbar nahi */}
           <Toaster />
         </FirebaseClientProvider>
       </body>
